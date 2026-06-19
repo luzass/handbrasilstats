@@ -38,6 +38,7 @@ No projeto do Vercel, adicione estas variaveis em `Settings > Environment Variab
 - `SUPABASE_ANON_KEY`
 
 Essas variaveis serao injetadas no build web automaticamente.
+O deploy tambem gera um arquivo `.env` temporario no build para atender ao empacotamento do Flutter.
 
 ## 5. Fazer o primeiro deploy
 
