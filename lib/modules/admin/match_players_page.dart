@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/match_model.dart';
 import '../../models/match_player_model.dart';
+import '../../models/match_roster_load_result.dart';
 import '../../repositories/match_player_repository.dart';
 import 'match_player_form_page.dart';
 
@@ -23,6 +24,7 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
   final _supabase = Supabase.instance.client;
 
   bool _isLoading = true;
+  bool _isSyncingRoster = false;
   String? _errorMessage;
 
   List<MatchPlayerModel> _items = [];
@@ -96,6 +98,157 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
     await _loadData();
   }
 
+  Future<bool?> _showRosterLoadModeDialog({
+    required String title,
+  }) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: const Text(
+            'Deseja adicionar apenas quem ainda nao esta na partida ou substituir o elenco atual desse time?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Adicionar so os que faltam'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Substituir elenco atual'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _loadRosterForTeam({
+    required String teamId,
+    required String teamName,
+  }) async {
+    final replaceExisting = await _showRosterLoadModeDialog(
+      title: 'Carregar elenco de $teamName',
+    );
+
+    if (replaceExisting == null) {
+      return;
+    }
+
+    setState(() {
+      _isSyncingRoster = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await _repository.loadRosterFromTeam(
+        matchId: widget.match.id,
+        teamId: teamId,
+        replaceExisting: replaceExisting,
+      );
+
+      if (!mounted) return;
+
+      await _loadData();
+
+      if (!mounted) return;
+
+      _showRosterLoadSnackBar(
+        teamName: teamName,
+        result: result,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Erro ao carregar elenco do time: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSyncingRoster = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadBothRosters() async {
+    final replaceExisting = await _showRosterLoadModeDialog(
+      title: 'Carregar os dois elencos',
+    );
+
+    if (replaceExisting == null) {
+      return;
+    }
+
+    setState(() {
+      _isSyncingRoster = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final homeResult = await _repository.loadRosterFromTeam(
+        matchId: widget.match.id,
+        teamId: widget.match.homeTeamId,
+        replaceExisting: replaceExisting,
+      );
+
+      final awayResult = await _repository.loadRosterFromTeam(
+        matchId: widget.match.id,
+        teamId: widget.match.awayTeamId,
+        replaceExisting: replaceExisting,
+      );
+
+      if (!mounted) return;
+
+      await _loadData();
+
+      if (!mounted) return;
+
+      final added = homeResult.addedCount + awayResult.addedCount;
+      final skipped = homeResult.skippedCount + awayResult.skippedCount;
+      final removed = homeResult.removedCount + awayResult.removedCount;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Elencos carregados. Adicionados: $added | Ignorados: $skipped | Removidos: $removed',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Erro ao carregar os elencos: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSyncingRoster = false;
+        });
+      }
+    }
+  }
+
+  void _showRosterLoadSnackBar({
+    required String teamName,
+    required MatchRosterLoadResult result,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$teamName: adicionados ${result.addedCount}, ignorados ${result.skippedCount}, removidos ${result.removedCount}.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final homeTeamItems =
@@ -106,6 +259,19 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Elenco da partida'),
+        actions: [
+          IconButton(
+            onPressed: _isSyncingRoster ? null : _loadBothRosters,
+            tooltip: 'Carregar elenco dos dois times',
+            icon: _isSyncingRoster
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.playlist_add_check_circle_outlined),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -154,6 +320,16 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
                 IconButton(
                   onPressed: () => _openForm(teamId),
                   icon: const Icon(Icons.add),
+                ),
+                IconButton(
+                  onPressed: _isSyncingRoster
+                      ? null
+                      : () => _loadRosterForTeam(
+                            teamId: teamId,
+                            teamName: title,
+                          ),
+                  tooltip: 'Carregar elenco base do time',
+                  icon: const Icon(Icons.download_for_offline_outlined),
                 ),
               ],
             ),

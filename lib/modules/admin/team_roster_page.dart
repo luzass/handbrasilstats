@@ -1,9 +1,16 @@
+import 'dart:math' as math;
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../models/player_csv_import_result.dart';
+import '../../models/player_csv_import_row.dart';
 import '../../models/player_model.dart';
 import '../../models/team_model.dart';
 import '../../repositories/player_repository.dart';
 import '../../repositories/team_roster_repository.dart';
+import '../../utils/csv_utils.dart';
+import '../../utils/player_csv_import_parser.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/athlete_photo_avatar.dart';
 
@@ -26,6 +33,7 @@ class _TeamRosterPageState extends State<TeamRosterPage> {
 
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isImportingCsv = false;
   String? _errorMessage;
 
   List<PlayerModel> _allPlayers = [];
@@ -106,6 +114,190 @@ class _TeamRosterPageState extends State<TeamRosterPage> {
         });
       }
     }
+  }
+
+  Future<void> _pickAndImportCsv() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['csv'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
+      }
+
+      final file = result.files.first;
+      final bytes = file.bytes;
+      if (bytes == null) {
+        setState(() {
+          _errorMessage = 'Nao foi possivel ler o CSV selecionado.';
+        });
+        return;
+      }
+
+      final csvContent = decodeCsvBytes(bytes);
+      final rows = _parseImportRows(csvContent);
+      if (rows.isEmpty) {
+        setState(() {
+          _errorMessage = 'O CSV nao possui jogadores validos para importar.';
+        });
+        return;
+      }
+
+      final shouldImport = await _showImportPreviewDialog(
+        fileName: file.name,
+        rows: rows,
+      );
+
+      if (shouldImport != true) {
+        return;
+      }
+
+      setState(() {
+        _isImportingCsv = true;
+        _errorMessage = null;
+      });
+
+      final importResult = await _rosterRepository.importPlayersFromRows(
+        teamId: widget.team.id,
+        rows: rows,
+      );
+
+      if (!mounted) return;
+
+      await _loadData();
+
+      if (!mounted) return;
+
+      await _showImportResultDialog(importResult);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Erro ao importar CSV: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isImportingCsv = false;
+        });
+      }
+    }
+  }
+
+  List<PlayerCsvImportRow> _parseImportRows(String csvContent) {
+    return parsePlayerCsvImportRows(csvContent);
+  }
+
+  Future<bool?> _showImportPreviewDialog({
+    required String fileName,
+    required List<PlayerCsvImportRow> rows,
+  }) {
+    final previewRows = rows.take(math.min(rows.length, 8)).toList();
+
+    return showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirmar importacao'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Arquivo: $fileName'),
+                const SizedBox(height: 8),
+                Text('Jogadores encontrados: ${rows.length}'),
+                const SizedBox(height: 12),
+                const Text(
+                  'Primeiros nomes encontrados:',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: math.min(previewRows.length, 4) * 72.0,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: previewRows.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final item = previewRows[index];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(item.fullName),
+                        subtitle: Text(
+                          'Posicao: ${item.primaryPosition ?? 'nao_informado'} | CPF: ${item.cpf ?? '-'}',
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Importar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showImportResultDialog(PlayerCsvImportResult result) {
+    final errorPreview = result.errors.take(8).join('\n');
+
+    return showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Importacao concluida'),
+          content: SizedBox(
+            width: 440,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Criados: ${result.createdCount}'),
+                  Text('Atualizados: ${result.updatedCount}'),
+                  Text('Vinculados ao elenco: ${result.rosterLinkedCount}'),
+                  Text('Reativados no elenco: ${result.rosterReactivatedCount}'),
+                  Text('Ignorados com erro: ${result.skippedCount}'),
+                  if (result.errors.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Erros encontrados:',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(errorPreview),
+                    if (result.errors.length > 8)
+                      Text('...e mais ${result.errors.length - 8} erro(s).'),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fechar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   bool _matchesSearch(PlayerModel player) {
@@ -241,6 +433,19 @@ class _TeamRosterPageState extends State<TeamRosterPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Elenco - ${widget.team.name}'),
+        actions: [
+          IconButton(
+            onPressed: _isImportingCsv ? null : _pickAndImportCsv,
+            tooltip: 'Importar jogadores via CSV',
+            icon: _isImportingCsv
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.upload_file_outlined),
+          ),
+        ],
       ),
       body: AppBackdrop(
         child: _isLoading
@@ -252,6 +457,42 @@ class _TeamRosterPageState extends State<TeamRosterPage> {
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.file_upload_outlined),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Voce pode importar jogadores por CSV e eles ja entram vinculados a este time.',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                const Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text('Modelo: modelo_importacao_jogadores.csv'),
+                                ),
+                                const SizedBox(height: 10),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: FilledButton.tonalIcon(
+                                    onPressed: _isImportingCsv ? null : _pickAndImportCsv,
+                                    icon: const Icon(Icons.upload_file_outlined),
+                                    label: const Text('Importar CSV'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         TextField(
                           controller: _searchController,
                           onChanged: (value) {
