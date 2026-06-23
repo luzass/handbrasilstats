@@ -71,7 +71,7 @@ class _PlayerListPageState extends State<PlayerListPage> {
 
   Future<void> _pickAndImportCsv() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['csv'],
         withData: true,
