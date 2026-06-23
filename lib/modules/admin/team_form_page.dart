@@ -102,6 +102,24 @@ class _TeamFormPageState extends State<TeamFormPage> {
     return fileName.split('.').last.toLowerCase();
   }
 
+  String _getContentType(String extension) {
+    switch (extension) {
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      default:
+        return 'image/webp';
+    }
+  }
+
+  String _buildShieldPublicUrl(String path) {
+    final publicUrl = _supabase.storage.from('team-shields').getPublicUrl(path);
+    final cacheVersion = DateTime.now().millisecondsSinceEpoch;
+    return '$publicUrl?v=$cacheVersion';
+  }
+
   Future<String?> _uploadShieldIfNeeded(String teamId) async {
     if (_selectedShieldBytes == null) {
       return _existingShieldUrl;
@@ -115,16 +133,11 @@ class _TeamFormPageState extends State<TeamFormPage> {
           _selectedShieldBytes!,
           fileOptions: FileOptions(
             upsert: true,
-            contentType: ext == 'png'
-                ? 'image/png'
-                : ext == 'jpg' || ext == 'jpeg'
-                    ? 'image/jpeg'
-                    : 'image/webp',
+            contentType: _getContentType(ext),
           ),
         );
 
-    final publicUrl = _supabase.storage.from('team-shields').getPublicUrl(path);
-    return publicUrl;
+    return _buildShieldPublicUrl(path);
   }
 
   Future<void> _save() async {
