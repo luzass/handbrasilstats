@@ -1571,7 +1571,6 @@ Widget _buildMatchHeader({
             const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, constraints) {
-                final sideBySide = constraints.maxWidth >= 760;
                 final goalBoard = _buildSelectorCard(
                   title: 'Zona no gol',
                   child: Column(
@@ -1605,22 +1604,12 @@ Widget _buildMatchHeader({
                   ),
                 );
 
-                if (sideBySide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: shotBoard),
-                      const SizedBox(width: 12),
-                      Expanded(child: goalBoard),
-                    ],
-                  );
-                }
-
-                return Column(
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    shotBoard,
-                    const SizedBox(height: 12),
-                    goalBoard,
+                    Expanded(child: shotBoard),
+                    const SizedBox(width: 12),
+                    Expanded(child: goalBoard),
                   ],
                 );
               },
