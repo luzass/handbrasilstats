@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class ShotZoneSelector extends StatelessWidget {
+  static const double _boardAspectRatio = 1.32;
+
   final int? selectedZoneId;
   final ValueChanged<int> onSelected;
   final bool enabled;
@@ -112,7 +114,7 @@ class ShotZoneSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: AspectRatio(
-        aspectRatio: 1.18,
+        aspectRatio: _boardAspectRatio,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;

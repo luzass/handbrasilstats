@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class GoalZoneSelector extends StatelessWidget {
+  static const double _boardAspectRatio = 1.32;
+
   final int? selectedGoalZoneId;
   final ValueChanged<int> onSelected;
   final bool enabled;
@@ -44,7 +46,7 @@ class GoalZoneSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 1.18,
+      aspectRatio: _boardAspectRatio,
       child: LayoutBuilder(
         builder: (context, constraints) {
           return Stack(
