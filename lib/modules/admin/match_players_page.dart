@@ -22,9 +22,11 @@ class MatchPlayersPage extends StatefulWidget {
 class _MatchPlayersPageState extends State<MatchPlayersPage> {
   final _repository = MatchPlayerRepository();
   final _supabase = Supabase.instance.client;
+  final Map<String, TextEditingController> _shirtNumberControllers = {};
 
   bool _isLoading = true;
   bool _isSyncingRoster = false;
+  bool _isSavingShirtNumbers = false;
   String? _errorMessage;
 
   List<MatchPlayerModel> _items = [];
@@ -46,13 +48,9 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
     try {
       final matchPlayers = await _repository.getMatchPlayers(widget.match.id);
 
-      final playersResponse = await _supabase
-          .from('players')
-          .select('id, full_name');
+      final playersResponse = await _supabase.from('players').select('id, full_name');
 
-      final teamsResponse = await _supabase
-          .from('teams')
-          .select('id, name');
+      final teamsResponse = await _supabase.from('teams').select('id, name');
 
       final playerMap = <String, String>{};
       for (final item in playersResponse) {
@@ -64,6 +62,8 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
         teamMap[item['id'] as String] = item['name'] as String;
       }
 
+      _replaceShirtNumberControllers(matchPlayers);
+
       if (!mounted) return;
 
       setState(() {
@@ -72,6 +72,8 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
         _teamNames = teamMap;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _errorMessage = 'Erro ao carregar elenco da partida: $e';
       });
@@ -81,6 +83,19 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  void _replaceShirtNumberControllers(List<MatchPlayerModel> items) {
+    for (final controller in _shirtNumberControllers.values) {
+      controller.dispose();
+    }
+    _shirtNumberControllers.clear();
+
+    for (final item in items) {
+      _shirtNumberControllers[item.id] = TextEditingController(
+        text: item.shirtNumber?.toString() ?? '',
+      );
     }
   }
 
@@ -236,6 +251,83 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
     }
   }
 
+  Future<void> _saveAllShirtNumbers() async {
+    FocusScope.of(context).unfocus();
+
+    final updates = <MatchPlayerModel>[];
+
+    for (final item in _items) {
+      final controller = _shirtNumberControllers[item.id];
+      final rawValue = controller?.text.trim() ?? '';
+      final shirtNumber = rawValue.isEmpty ? null : int.tryParse(rawValue);
+
+      if (rawValue.isNotEmpty && shirtNumber == null) {
+        setState(() {
+          _errorMessage =
+              'Preencha apenas numeros validos nas camisas antes de salvar.';
+        });
+        return;
+      }
+
+      if (shirtNumber != item.shirtNumber) {
+        updates.add(
+          MatchPlayerModel(
+            id: item.id,
+            matchId: item.matchId,
+            teamId: item.teamId,
+            playerId: item.playerId,
+            shirtNumber: shirtNumber,
+            isGoalkeeper: item.isGoalkeeper,
+            positionInMatch: item.positionInMatch,
+            isActiveInMatch: item.isActiveInMatch,
+          ),
+        );
+      }
+    }
+
+    if (updates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nenhuma camisa foi alterada.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSavingShirtNumbers = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await Future.wait(updates.map(_repository.updateMatchPlayer));
+
+      if (!mounted) return;
+
+      await _loadData();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${updates.length} camisa(s) salva(s) com sucesso.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Erro ao salvar camisas: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingShirtNumbers = false;
+        });
+      }
+    }
+  }
+
   void _showRosterLoadSnackBar({
     required String teamName,
     required MatchRosterLoadResult result,
@@ -260,6 +352,19 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
       appBar: AppBar(
         title: const Text('Elenco da partida'),
         actions: [
+          IconButton(
+            onPressed: _isSavingShirtNumbers || _isSyncingRoster
+                ? null
+                : _saveAllShirtNumbers,
+            tooltip: 'Salvar todas as camisas',
+            icon: _isSavingShirtNumbers
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+          ),
           IconButton(
             onPressed: _isSyncingRoster ? null : _loadBothRosters,
             tooltip: 'Carregar elenco dos dois times',
@@ -305,6 +410,7 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -319,6 +425,7 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
                 ),
                 IconButton(
                   onPressed: () => _openForm(teamId),
+                  tooltip: 'Adicionar atleta',
                   icon: const Icon(Icons.add),
                 ),
                 IconButton(
@@ -334,21 +441,70 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
               ],
             ),
             const SizedBox(height: 8),
+            const Text(
+              'Preencha as camisas ao lado dos nomes e salve tudo de uma vez no botao do topo.',
+            ),
+            const SizedBox(height: 12),
             if (items.isEmpty)
               const Text('Nenhum atleta vinculado.')
             else
               ...items.map(
-                (item) => ListTile(
-                  title: Text(_playerNames[item.playerId] ?? item.playerId),
-                  subtitle: Text(
-                    'Camisa: ${item.shirtNumber ?? '-'} | '
-                    'Posição: ${item.positionInMatch} | '
-                    'Goleiro: ${item.isGoalkeeper ? 'Sim' : 'Não'} | '
-                    'Ativo: ${item.isActiveInMatch ? 'Sim' : 'Não'}',
+                (item) => Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFE1E6EB)),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _openForm(teamId, item),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _playerNames[item.playerId] ?? item.playerId,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Posicao: ${item.positionInMatch} | '
+                                'Goleiro: ${item.isGoalkeeper ? 'Sim' : 'Nao'} | '
+                                'Ativo: ${item.isActiveInMatch ? 'Sim' : 'Nao'}',
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 96,
+                          child: TextField(
+                            controller: _shirtNumberControllers[item.id],
+                            keyboardType: TextInputType.number,
+                            enabled: !_isSavingShirtNumbers,
+                            decoration: const InputDecoration(
+                              labelText: 'Camisa',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          tooltip: 'Editar detalhes do atleta',
+                          onPressed: () => _openForm(teamId, item),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -356,5 +512,13 @@ class _MatchPlayersPageState extends State<MatchPlayersPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _shirtNumberControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 }
