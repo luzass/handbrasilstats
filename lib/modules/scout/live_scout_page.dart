@@ -881,7 +881,12 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.green : null,
-          minimumSize: const Size(90, 44),
+          minimumSize: const Size(74, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          textStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         onPressed: () => onSelected(value),
         child: Text(label),
@@ -911,7 +916,12 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.purple : null,
-          minimumSize: const Size(130, 44),
+          minimumSize: const Size(108, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          textStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         onPressed: () => onSelected(value),
         child: Text(label),
@@ -1041,7 +1051,12 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.teal : null,
-          minimumSize: const Size(110, 44),
+          minimumSize: const Size(94, 36),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          textStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         onPressed: () => onSelected(value),
         child: Text(label),
@@ -1495,6 +1510,14 @@ Widget _buildMatchHeader({
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(42),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 onPressed: isSaving ? null : onSave,
                 child: isSaving
                     ? const CircularProgressIndicator()
@@ -1660,6 +1683,14 @@ Widget _buildMatchHeader({
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(42),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 onPressed: isSaving ? null : onSave,
                 child: isSaving
                     ? const CircularProgressIndicator()
