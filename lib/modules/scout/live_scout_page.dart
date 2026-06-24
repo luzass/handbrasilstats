@@ -179,12 +179,17 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
         final player = item['players'];
         if (player == null) continue;
 
+        final shirtNumber = item['shirt_number'] as int?;
+        if (shirtNumber == null) {
+          continue;
+        }
+
         final row = {
           'id': player['id'] as String,
           'full_name': player['full_name'] as String,
           'team_id': item['team_id'] as String,
           'is_goalkeeper': item['is_goalkeeper'] as bool? ?? false,
-          'shirt_number': item['shirt_number'],
+          'shirt_number': shirtNumber,
         };
 
         final isGoalkeeper = row['is_goalkeeper'] as bool;
@@ -928,6 +933,16 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     required String? selectedPlayerId,
     required ValueChanged<String> onSelected,
   }) {
+    final numberedPlayers = players
+        .where((player) => player['shirt_number'] is int)
+        .toList();
+
+    if (numberedPlayers.isEmpty) {
+      return const Text(
+        'Nenhum atleta com numero de camisa preenchido para esta equipe.',
+      );
+    }
+
     List<String> playerLabels(String fullName) {
       final parts = fullName
           .trim()
@@ -1012,7 +1027,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: players.map(playerButton).toList(),
+      children: numberedPlayers.map(playerButton).toList(),
     );
   }
 
