@@ -874,9 +874,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
   Widget _buildResultButtons({
     required String selectedResult,
     required ValueChanged<String> onSelected,
+    required bool compact,
   }) {
-    final compact = MediaQuery.sizeOf(context).width < 1400;
-
     Widget resultButton(String value, String label) {
       final isSelected = selectedResult == value;
 
@@ -914,9 +913,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
   Widget _buildAttackContextButtons({
     required String selectedAttackContext,
     required ValueChanged<String> onSelected,
+    required bool compact,
   }) {
-    final compact = MediaQuery.sizeOf(context).width < 1400;
-
     Widget contextButton(String value, String label) {
       final isSelected = selectedAttackContext == value;
 
@@ -952,8 +950,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     required List<Map<String, dynamic>> players,
     required String? selectedPlayerId,
     required ValueChanged<String> onSelected,
+    required bool compact,
   }) {
-    final compact = MediaQuery.sizeOf(context).width < 1400;
     final numberedPlayers = players
         .where((player) => player['shirt_number'] is int)
         .toList();
@@ -1055,9 +1053,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
   Widget _buildGenericEventButtons({
     required String selectedEventType,
     required ValueChanged<String> onSelected,
+    required bool compact,
   }) {
-    final compact = MediaQuery.sizeOf(context).width < 1400;
-
     Widget eventButton(String value, String label) {
       final isSelected = selectedEventType == value;
 
@@ -1480,9 +1477,8 @@ Widget _buildMatchHeader({
     required VoidCallback onSave,
     required bool isSaving,
     required bool needsPlayer,
+    required bool compact,
   }) {
-    final compact = MediaQuery.sizeOf(context).width < 1400;
-
     return Card(
       child: Padding(
         padding: EdgeInsets.all(compact ? 10 : 12),
@@ -1509,6 +1505,7 @@ Widget _buildMatchHeader({
                 players: players,
                 selectedPlayerId: selectedPlayerId,
                 onSelected: onPlayerChanged,
+                compact: compact,
               ),
               const SizedBox(height: 12),
             ],
@@ -1523,6 +1520,7 @@ Widget _buildMatchHeader({
             _buildGenericEventButtons(
               selectedEventType: selectedEventType,
               onSelected: onEventTypeChanged,
+              compact: compact,
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -1554,9 +1552,8 @@ Widget _buildMatchHeader({
   Widget _buildSelectorCard({
     required String title,
     required Widget child,
+    required bool compact,
   }) {
-    final compact = MediaQuery.sizeOf(context).width < 1400;
-
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(compact ? 10 : 12),
@@ -1605,146 +1602,158 @@ Widget _buildMatchHeader({
     required bool isSavingGenericEvent,
     required bool genericNeedsPlayer,
   }) {
-    final compact = MediaQuery.sizeOf(context).width < 1400;
     final goalZoneEnabled = _goalZoneIsRequired(selectedResult);
 
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(compact ? 10 : 12),
-        child: Column(
-          children: [
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: compact ? 16 : 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: compact ? 10 : 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final goalBoard = _buildSelectorCard(
-                  title: 'Zona no gol',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Opacity(
-                        opacity: goalZoneEnabled ? 1 : 0.42,
-                        child: RepaintBoundary(
-                          child: GoalZoneSelector(
-                            selectedGoalZoneId: selectedGoalZoneId,
-                            onSelected: onGoalZoneSelected,
-                            enabled: goalZoneEnabled,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 760;
+        final boardGap = compact ? 8.0 : 12.0;
+
+        return Card(
+          child: Padding(
+            padding: EdgeInsets.all(compact ? 10 : 12),
+            child: Column(
+              children: [
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: compact ? 16 : 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: compact ? 10 : 12),
+                LayoutBuilder(
+                  builder: (context, boardConstraints) {
+                    final goalBoard = _buildSelectorCard(
+                      title: 'Zona no gol',
+                      compact: compact,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Opacity(
+                            opacity: goalZoneEnabled ? 1 : 0.42,
+                            child: RepaintBoundary(
+                              child: GoalZoneSelector(
+                                selectedGoalZoneId: selectedGoalZoneId,
+                                onSelected: onGoalZoneSelected,
+                                enabled: goalZoneEnabled,
+                              ),
+                            ),
                           ),
+                          if (!goalZoneEnabled) ...[
+                            const SizedBox(height: 8),
+                            const Text('Nao se aplica para este resultado.'),
+                          ],
+                        ],
+                      ),
+                    );
+
+                    final shotBoard = _buildSelectorCard(
+                      title: 'Zona do chute',
+                      compact: compact,
+                      child: RepaintBoundary(
+                        child: ShotZoneSelector(
+                          selectedZoneId: selectedZoneId,
+                          onSelected: onZoneSelected,
                         ),
                       ),
-                      if (!goalZoneEnabled) ...[
-                        const SizedBox(height: 8),
-                        const Text('Nao se aplica para este resultado.'),
-                      ],
-                    ],
-                  ),
-                );
+                    );
 
-                final shotBoard = _buildSelectorCard(
-                  title: 'Zona do chute',
-                  child: RepaintBoundary(
-                    child: ShotZoneSelector(
-                      selectedZoneId: selectedZoneId,
-                      onSelected: onZoneSelected,
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: shotBoard),
+                        SizedBox(width: boardGap),
+                        Expanded(child: goalBoard),
+                      ],
+                    );
+                  },
+                ),
+                SizedBox(height: compact ? 12 : 16),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Jogadores',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildPlayerButtons(
+                  players: players,
+                  selectedPlayerId: selectedPlayerId,
+                  onSelected: onPlayerChanged,
+                  compact: compact,
+                ),
+                SizedBox(height: compact ? 12 : 16),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Resultado',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildResultButtons(
+                  selectedResult: selectedResult,
+                  onSelected: onResultChanged,
+                  compact: compact,
+                ),
+                if (selectedResult == 'goal') ...[
+                  SizedBox(height: compact ? 12 : 16),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Tipo do gol',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                );
-
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: shotBoard),
-                    const SizedBox(width: 12),
-                    Expanded(child: goalBoard),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Jogadores',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _buildPlayerButtons(
-              players: players,
-              selectedPlayerId: selectedPlayerId,
-              onSelected: onPlayerChanged,
-            ),
-            const SizedBox(height: 16),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Resultado',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 8),
-            _buildResultButtons(
-              selectedResult: selectedResult,
-              onSelected: onResultChanged,
-            ),
-            if (selectedResult == 'goal') ...[
-              const SizedBox(height: 16),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Tipo do gol',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildAttackContextButtons(
-                selectedAttackContext: selectedAttackContext,
-                onSelected: onAttackContextChanged,
-              ),
-            ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size.fromHeight(compact ? 36 : 42),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 12 : 16,
-                    vertical: compact ? 8 : 10,
+                  const SizedBox(height: 8),
+                  _buildAttackContextButtons(
+                    selectedAttackContext: selectedAttackContext,
+                    onSelected: onAttackContextChanged,
+                    compact: compact,
                   ),
-                  textStyle: TextStyle(
-                    fontSize: compact ? 13 : 14,
-                    fontWeight: FontWeight.w700,
+                ],
+                SizedBox(height: compact ? 12 : 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size.fromHeight(compact ? 36 : 42),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 12 : 16,
+                        vertical: compact ? 8 : 10,
+                      ),
+                      textStyle: TextStyle(
+                        fontSize: compact ? 13 : 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    onPressed: isSaving ? null : onSave,
+                    child: isSaving
+                        ? const CircularProgressIndicator()
+                        : const Text('Salvar evento'),
                   ),
                 ),
-                onPressed: isSaving ? null : onSave,
-                child: isSaving
-                    ? const CircularProgressIndicator()
-                    : const Text('Salvar evento'),
-              ),
+                SizedBox(height: compact ? 16 : 20),
+                _buildDisciplinaryPanel(
+                  title: title,
+                  players: players,
+                  selectedPlayerId: selectedGenericPlayerId,
+                  onPlayerChanged: onGenericPlayerChanged,
+                  selectedEventType: selectedGenericEventType,
+                  onEventTypeChanged: onGenericEventTypeChanged,
+                  onSave: onSaveGenericEvent,
+                  isSaving: isSavingGenericEvent,
+                  needsPlayer: genericNeedsPlayer,
+                  compact: compact,
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
-            _buildDisciplinaryPanel(
-              title: title,
-              players: players,
-              selectedPlayerId: selectedGenericPlayerId,
-              onPlayerChanged: onGenericPlayerChanged,
-              selectedEventType: selectedGenericEventType,
-              onEventTypeChanged: onGenericEventTypeChanged,
-              onSave: onSaveGenericEvent,
-              isSaving: isSavingGenericEvent,
-              needsPlayer: genericNeedsPlayer,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -1857,8 +1866,6 @@ Widget _buildMatchHeader({
               const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final stacked = constraints.maxWidth < 720;
-
                   final homePanel = ValueListenableBuilder<_ShotDraft>(
                     valueListenable: _leftShotDraft,
                     builder: (context, draft, _) {
@@ -1975,23 +1982,25 @@ Widget _buildMatchHeader({
                     },
                   );
 
-                  if (stacked) {
-                    return Column(
-                      children: [
-                        homePanel,
-                        const SizedBox(height: 12),
-                        awayPanel,
-                      ],
-                    );
-                  }
-
-                  return Row(
+                  final row = Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(child: homePanel),
                       const SizedBox(width: 12),
                       Expanded(child: awayPanel),
                     ],
+                  );
+
+                  if (constraints.maxWidth >= 900) {
+                    return row;
+                  }
+
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: 900,
+                      child: row,
+                    ),
                   );
                 },
               ),
