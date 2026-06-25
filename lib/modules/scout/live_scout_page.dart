@@ -875,16 +875,21 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     required String selectedResult,
     required ValueChanged<String> onSelected,
   }) {
+    final compact = MediaQuery.sizeOf(context).width < 1400;
+
     Widget resultButton(String value, String label) {
       final isSelected = selectedResult == value;
 
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.green : null,
-          minimumSize: const Size(74, 36),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          textStyle: const TextStyle(
-            fontSize: 13,
+          minimumSize: compact ? const Size(62, 32) : const Size(74, 36),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 14,
+            vertical: compact ? 6 : 8,
+          ),
+          textStyle: TextStyle(
+            fontSize: compact ? 12 : 13,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -910,16 +915,21 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     required String selectedAttackContext,
     required ValueChanged<String> onSelected,
   }) {
+    final compact = MediaQuery.sizeOf(context).width < 1400;
+
     Widget contextButton(String value, String label) {
       final isSelected = selectedAttackContext == value;
 
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.purple : null,
-          minimumSize: const Size(108, 36),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          textStyle: const TextStyle(
-            fontSize: 13,
+          minimumSize: compact ? const Size(92, 32) : const Size(108, 36),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 14,
+            vertical: compact ? 6 : 8,
+          ),
+          textStyle: TextStyle(
+            fontSize: compact ? 12 : 13,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -943,6 +953,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     required String? selectedPlayerId,
     required ValueChanged<String> onSelected,
   }) {
+    final compact = MediaQuery.sizeOf(context).width < 1400;
     final numberedPlayers = players
         .where((player) => player['shirt_number'] is int)
         .toList();
@@ -983,8 +994,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
             borderRadius: BorderRadius.circular(14),
             onTap: () => onSelected(id),
             child: Container(
-              width: 66,
-              height: 70,
+              width: compact ? 56 : 66,
+              height: compact ? 60 : 70,
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFFFFB74D) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
@@ -998,8 +1009,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
                 children: [
                   Text(
                     shirtNumber?.toString() ?? '?',
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: compact ? 14 : 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1007,7 +1018,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
                   Text(
                     labels[0],
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: compact ? 8.5 : 10,
                       fontWeight: FontWeight.w800,
                       color: Colors.grey.shade700,
                       height: 1.0,
@@ -1018,7 +1029,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
                   Text(
                     labels[1],
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: compact ? 8.5 : 10,
                       fontWeight: FontWeight.w800,
                       color: Colors.grey.shade700,
                       height: 1.0,
@@ -1045,16 +1056,21 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     required String selectedEventType,
     required ValueChanged<String> onSelected,
   }) {
+    final compact = MediaQuery.sizeOf(context).width < 1400;
+
     Widget eventButton(String value, String label) {
       final isSelected = selectedEventType == value;
 
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.teal : null,
-          minimumSize: const Size(94, 36),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          textStyle: const TextStyle(
-            fontSize: 13,
+          minimumSize: compact ? const Size(80, 32) : const Size(94, 36),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 10 : 14,
+            vertical: compact ? 6 : 8,
+          ),
+          textStyle: TextStyle(
+            fontSize: compact ? 12 : 13,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -1465,9 +1481,11 @@ Widget _buildMatchHeader({
     required bool isSaving,
     required bool needsPlayer,
   }) {
+    final compact = MediaQuery.sizeOf(context).width < 1400;
+
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(compact ? 10 : 12),
         child: Column(
           children: [
             Align(
@@ -1511,10 +1529,13 @@ Widget _buildMatchHeader({
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(42),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  textStyle: const TextStyle(
-                    fontSize: 14,
+                  minimumSize: Size.fromHeight(compact ? 36 : 42),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 12 : 16,
+                    vertical: compact ? 8 : 10,
+                  ),
+                  textStyle: TextStyle(
+                    fontSize: compact ? 13 : 14,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1534,12 +1555,14 @@ Widget _buildMatchHeader({
     required String title,
     required Widget child,
   }) {
+    final compact = MediaQuery.sizeOf(context).width < 1400;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(compact ? 10 : 12),
       decoration: BoxDecoration(
         color: const Color(0xFFF7F8FA),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(compact ? 14 : 18),
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
@@ -1547,9 +1570,12 @@ Widget _buildMatchHeader({
         children: [
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: compact ? 13 : 14,
+            ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 8 : 10),
           child,
         ],
       ),
@@ -1579,19 +1605,23 @@ Widget _buildMatchHeader({
     required bool isSavingGenericEvent,
     required bool genericNeedsPlayer,
   }) {
+    final compact = MediaQuery.sizeOf(context).width < 1400;
     final goalZoneEnabled = _goalZoneIsRequired(selectedResult);
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(compact ? 10 : 12),
         child: Column(
           children: [
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: compact ? 16 : 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 10 : 12),
             LayoutBuilder(
               builder: (context, constraints) {
                 final goalBoard = _buildSelectorCard(
@@ -1684,10 +1714,13 @@ Widget _buildMatchHeader({
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(42),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  textStyle: const TextStyle(
-                    fontSize: 14,
+                  minimumSize: Size.fromHeight(compact ? 36 : 42),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: compact ? 12 : 16,
+                    vertical: compact ? 8 : 10,
+                  ),
+                  textStyle: TextStyle(
+                    fontSize: compact ? 13 : 14,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1750,7 +1783,7 @@ Widget _buildMatchHeader({
              
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final vertical = constraints.maxWidth < 920;
+                  final vertical = constraints.maxWidth < 720;
                   final homeField = DropdownButtonFormField<String>(
                     initialValue: _currentHomeGoalkeeperId,
                     decoration: InputDecoration(
@@ -1824,7 +1857,7 @@ Widget _buildMatchHeader({
               const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final stacked = constraints.maxWidth < 1500;
+                  final stacked = constraints.maxWidth < 720;
 
                   final homePanel = ValueListenableBuilder<_ShotDraft>(
                     valueListenable: _leftShotDraft,
