@@ -3,19 +3,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class ScoutLanceMapSelector extends StatelessWidget {
-  static const double _boardAspectRatio = 1.18;
+  static const double _boardAspectRatio = 1.55;
 
   // ----- shared court geometry -----
   // Single source of truth for where the goal line, 6m area and 9m line
   // sit (as a fraction of the board height). Both the tap-zone anchors
   // below and the CustomPainter read these, so the clickable zones always
   // line up with what's actually drawn, even if these numbers change.
-  static const double goalLineY = 0.32;
-  static const double sixMeterDepth = 0.16; // 6m area bulge, below goalLineY
-  static const double nineMeterExtra = 0.13; // extra depth of the 9m line, below the 6m apex
+  static const double goalLineY = 0.36;
+  static const double sixMeterDepth = 0.15; // 6m area bulge, below goalLineY
+  static const double nineMeterExtra = 0.12; // extra depth of the 9m line, below the 6m apex
   static const double sixMeterApexY = goalLineY + sixMeterDepth; // ~0.48
   static const double nineMeterApexY = sixMeterApexY + nineMeterExtra; // ~0.61
-  static const double bottomY = 0.74;
+  static const double bottomY = 0.92;
 
   final int? selectedZoneId;
   final int? selectedGoalZoneId;
@@ -46,12 +46,12 @@ class ScoutLanceMapSelector extends StatelessWidget {
     2: Offset(0.33, nineMeterApexY - 0.02),
     3: Offset(0.50, nineMeterApexY - 0.02),
     4: Offset(0.67, nineMeterApexY - 0.02),
-    9: Offset(0.20, bottomY - 0.05),
-    8: Offset(0.50, bottomY - 0.04),
-    7: Offset(0.80, bottomY - 0.05),
+    9: Offset(0.20, bottomY - 0.08),
+    8: Offset(0.50, bottomY - 0.07),
+    7: Offset(0.80, bottomY - 0.08),
   };
 
-  static const Offset _sevenMeterAnchor = Offset(0.50, 0.55);
+  static const Offset _sevenMeterAnchor = Offset(0.50, 0.61);
 
   static const List<List<int>> _goalRows = [
     [1, 4, 7],
@@ -102,9 +102,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
 
   Widget _goalGrid(double width, double height) {
     final left = width * 0.14;
-    final top = height * 0.05;
+    final top = height * 0.06;
     final goalWidth = width * 0.72;
-    final goalHeight = height * 0.27;
+    final goalHeight = height * 0.30;
 
     return Positioned(
       left: left,
@@ -387,7 +387,7 @@ class _ScoutLanceMapPainter extends CustomPainter {
     final centerX = width / 2;
     final goalLeft = width * 0.14;
     final goalRight = width * 0.86;
-    final goalTop = height * 0.05;
+    final goalTop = height * 0.06;
     final goalLineY = height * ScoutLanceMapSelector.goalLineY; // where the 6m area starts
 
     // ----- goal net grid -----
@@ -455,8 +455,8 @@ class _ScoutLanceMapPainter extends CustomPainter {
     canvas.drawPath(areaPath, areaFillPaint);
     canvas.drawPath(areaPath, linePaint);
     canvas.drawLine(
-      Offset(0, goalLineY),
-      Offset(width, goalLineY),
+      Offset(width * 0.01, goalLineY),
+      Offset(width * 0.99, goalLineY),
       linePaint,
     );
 
@@ -488,12 +488,12 @@ class _ScoutLanceMapPainter extends CustomPainter {
 
     canvas.drawLine(
       leftReference,
-      Offset(0, bottomY),
+      Offset(width * 0.01, bottomY),
       linePaint,
     );
     canvas.drawLine(
       rightReference,
-      Offset(width, bottomY),
+      Offset(width * 0.99, bottomY),
       linePaint,
     );
     canvas.drawLine(
