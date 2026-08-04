@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class ScoutLanceMapSelector extends StatelessWidget {
-  static const double _boardAspectRatio = 1.55;
+  static const double _boardAspectRatio = 0.88;
 
   // ----- shared court geometry -----
   // Single source of truth for where the goal line, 6m area and 9m line
@@ -15,7 +15,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
   static const double nineMeterExtra = 0.12; // extra depth of the 9m line, below the 6m apex
   static const double sixMeterApexY = goalLineY + sixMeterDepth; // ~0.48
   static const double nineMeterApexY = sixMeterApexY + nineMeterExtra; // ~0.61
-  static const double bottomY = 0.92;
+  static const double bottomY = 0.78;
 
   final int? selectedZoneId;
   final int? selectedGoalZoneId;
@@ -46,9 +46,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
     2: Offset(0.33, nineMeterApexY - 0.02),
     3: Offset(0.50, nineMeterApexY - 0.02),
     4: Offset(0.67, nineMeterApexY - 0.02),
-    9: Offset(0.20, bottomY - 0.08),
-    8: Offset(0.50, bottomY - 0.07),
-    7: Offset(0.80, bottomY - 0.08),
+    9: Offset(0.20, bottomY - 0.06),
+    8: Offset(0.50, bottomY - 0.05),
+    7: Offset(0.80, bottomY - 0.06),
   };
 
   static const Offset _sevenMeterAnchor = Offset(0.50, 0.61);
@@ -483,8 +483,8 @@ class _ScoutLanceMapPainter extends CustomPainter {
     // The long continuation of these guide lines is intentionally clipped out,
     // matching the compact attack-map reference instead of showing a full court.
     final bottomY = height * ScoutLanceMapSelector.bottomY;
-    final leftReference = Offset(width * 0.38, goalLineY);
-    final rightReference = Offset(width * 0.62, goalLineY);
+    final leftReference = Offset(width * 0.34, goalLineY + areaRy * 0.68);
+    final rightReference = Offset(width * 0.66, goalLineY + areaRy * 0.68);
 
     canvas.drawLine(
       leftReference,
@@ -497,12 +497,12 @@ class _ScoutLanceMapPainter extends CustomPainter {
       linePaint,
     );
     canvas.drawLine(
-      leftReference,
+      Offset(width * 0.44, goalLineY + areaRy * 1.02),
       Offset(width * 0.34, bottomY),
       linePaint,
     );
     canvas.drawLine(
-      rightReference,
+      Offset(width * 0.56, goalLineY + areaRy * 1.02),
       Offset(width * 0.66, bottomY),
       linePaint,
     );
