@@ -12,8 +12,7 @@ import '../../models/shot_event_model.dart';
 import '../../repositories/match_event_repository.dart';
 import '../../repositories/match_live_stats_repository.dart';
 import '../../repositories/shot_event_repository.dart';
-import '../../widgets/goal_zone_selector.dart';
-import '../../widgets/shot_zone_selector.dart';
+import '../../widgets/scout_lance_map_selector.dart';
 import 'edit_match_event_page.dart';
 import 'edit_shot_event_page.dart';
 
@@ -1679,7 +1678,6 @@ Widget _buildMatchHeader({
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 760;
-        final boardGap = compact ? 6.0 : 10.0;
 
         return Card(
           child: Padding(
@@ -1695,73 +1693,34 @@ Widget _buildMatchHeader({
                   ),
                 ),
                 SizedBox(height: compact ? 8 : 10),
-                LayoutBuilder(
-                  builder: (context, boardConstraints) {
-                    final goalBoard = _buildSelectorCard(
-                      title: 'Zona no gol',
-                      compact: compact,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Opacity(
-                            opacity: goalZoneEnabled ? 1 : 0.42,
-                            child: Center(
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: compact ? 280 : 360,
-                                ),
-                                child: RepaintBoundary(
-                                  child: GoalZoneSelector(
-                                    selectedGoalZoneId: selectedGoalZoneId,
-                                    onSelected: onGoalZoneSelected,
-                                    enabled: goalZoneEnabled,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (!goalZoneEnabled) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Nao se aplica para este resultado.',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.70),
-                                fontSize: compact ? 11 : 12,
-                              ),
-                            ),
-                          ],
-                        ],
+                _buildSelectorCard(
+                  title: 'Mapa do lance',
+                  compact: compact,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: compact ? 340 : 430,
                       ),
-                    );
-
-                    final shotBoard = _buildSelectorCard(
-                      title: 'Zona do chute',
-                      compact: compact,
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: compact ? 280 : 360,
-                          ),
-                          child: RepaintBoundary(
-                            child: ShotZoneSelector(
-                              selectedZoneId: selectedZoneId,
-                              onSelected: onZoneSelected,
-                            ),
-                          ),
-                        ),
+                      child: ScoutLanceMapSelector(
+                        selectedZoneId: selectedZoneId,
+                        selectedGoalZoneId: selectedGoalZoneId,
+                        onZoneSelected: onZoneSelected,
+                        onGoalZoneSelected: onGoalZoneSelected,
+                        goalZonesEnabled: goalZoneEnabled,
                       ),
-                    );
-
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: shotBoard),
-                        SizedBox(width: boardGap),
-                        Expanded(child: goalBoard),
-                      ],
-                    );
-                  },
+                    ),
+                  ),
                 ),
+                if (!goalZoneEnabled) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Para Fora, Trave e Bloqueado, marque so a zona do chute.',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: compact ? 11 : 12,
+                    ),
+                  ),
+                ],
                 SizedBox(height: compact ? 8 : 12),
                 const Align(
                   alignment: Alignment.centerLeft,
