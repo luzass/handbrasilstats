@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class ScoutLanceMapSelector extends StatelessWidget {
-  static const double _boardAspectRatio = 1.0;
+  static const double _boardAspectRatio = 1.18;
 
   // ----- shared court geometry -----
   // Single source of truth for where the goal line, 6m area and 9m line
@@ -15,7 +15,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
   static const double nineMeterExtra = 0.13; // extra depth of the 9m line, below the 6m apex
   static const double sixMeterApexY = goalLineY + sixMeterDepth; // ~0.48
   static const double nineMeterApexY = sixMeterApexY + nineMeterExtra; // ~0.61
-  static const double bottomY = 0.99;
+  static const double bottomY = 0.74;
 
   final int? selectedZoneId;
   final int? selectedGoalZoneId;
@@ -46,9 +46,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
     2: Offset(0.33, nineMeterApexY - 0.02),
     3: Offset(0.50, nineMeterApexY - 0.02),
     4: Offset(0.67, nineMeterApexY - 0.02),
-    9: Offset(0.20, nineMeterApexY + 0.10),
-    8: Offset(0.50, nineMeterApexY + 0.14),
-    7: Offset(0.80, nineMeterApexY + 0.10),
+    9: Offset(0.20, bottomY - 0.05),
+    8: Offset(0.50, bottomY - 0.04),
+    7: Offset(0.80, bottomY - 0.05),
   };
 
   static const Offset _sevenMeterAnchor = Offset(0.50, 0.55);
@@ -454,6 +454,11 @@ class _ScoutLanceMapPainter extends CustomPainter {
 
     canvas.drawPath(areaPath, areaFillPaint);
     canvas.drawPath(areaPath, linePaint);
+    canvas.drawLine(
+      Offset(0, goalLineY),
+      Offset(width, goalLineY),
+      linePaint,
+    );
 
     // ----- 9m free-throw line: concentric dashed half-ellipse -----
     final nineRx = areaRx + width * 0.14;
@@ -474,20 +479,30 @@ class _ScoutLanceMapPainter extends CustomPainter {
       paint: dashedPaint,
     );
 
-    // ----- sidelines: continue straight from the 6m area's flat-top corners -----
+    // ----- visible court cuts: keep only the compact section above bottomY -----
+    // The long continuation of these guide lines is intentionally clipped out,
+    // matching the compact attack-map reference instead of showing a full court.
     final bottomY = height * ScoutLanceMapSelector.bottomY;
-    canvas.drawLine(Offset(goalLeft, goalLineY), Offset(width * 0.015, bottomY), linePaint);
-    canvas.drawLine(Offset(goalRight, goalLineY), Offset(width * 0.985, bottomY), linePaint);
+    final leftReference = Offset(width * 0.38, goalLineY);
+    final rightReference = Offset(width * 0.62, goalLineY);
 
-    // ----- inner dividers: split the middle zones (2/9 | 3/8 | 4/7) -----
-    final dividerTopY = goalLineY + (areaRy * 1.35);
     canvas.drawLine(
-      Offset(centerX - width * 0.09, dividerTopY),
+      leftReference,
+      Offset(0, bottomY),
+      linePaint,
+    );
+    canvas.drawLine(
+      rightReference,
+      Offset(width, bottomY),
+      linePaint,
+    );
+    canvas.drawLine(
+      leftReference,
       Offset(width * 0.34, bottomY),
       linePaint,
     );
     canvas.drawLine(
-      Offset(centerX + width * 0.09, dividerTopY),
+      rightReference,
       Offset(width * 0.66, bottomY),
       linePaint,
     );
