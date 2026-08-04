@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'theme/app_theme.dart';
+import 'modules/auth/forgot_password_page.dart';
 import 'modules/auth/login_page.dart';
 import 'modules/auth/register_page.dart';
+import 'modules/auth/reset_password_page.dart';
 import 'modules/splash/splash_page.dart';
 
 class App extends StatelessWidget {
@@ -19,6 +21,8 @@ class App extends StatelessWidget {
         '/': (_) => const SplashPage(),
         '/login': (_) => const LoginPage(),
         '/register': (_) => const RegisterPage(profileType: 'visitor'),
+        '/forgot-password': (_) => const ForgotPasswordPage(),
+        '/reset-password': (_) => const ResetPasswordPage(),
       },
     );
   }

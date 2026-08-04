@@ -8,6 +8,7 @@ import '../admin/admin_home_page.dart';
 import '../client/client_home_page.dart';
 import '../scout/scout_home_page.dart';
 import '../viewer/viewer_home_page.dart';
+import 'forgot_password_page.dart';
 import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -219,6 +220,23 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 )
                               : const Text('Entrar na plataforma'),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ForgotPasswordPage(),
+                                    ),
+                                  );
+                                },
+                          child: const Text('Esqueci minha senha'),
                         ),
                       ),
                       const SizedBox(height: 10),
