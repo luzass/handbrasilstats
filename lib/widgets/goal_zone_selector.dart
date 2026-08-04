@@ -20,7 +20,7 @@ class GoalZoneSelector extends StatelessWidget {
     [3, 6, 9],
   ];
 
-  Widget _cell(int goalZoneId) {
+  Widget _cell(int goalZoneId, double fontSize) {
     final isSelected = selectedGoalZoneId == goalZoneId;
 
     return GestureDetector(
@@ -35,7 +35,7 @@ class GoalZoneSelector extends StatelessWidget {
           'G${goalZoneId.toString().padLeft(2, '0')}',
           style: TextStyle(
             color: Colors.black87,
-            fontSize: 14,
+            fontSize: fontSize,
             fontWeight: isSelected ? FontWeight.w900 : FontWeight.w800,
           ),
         ),
@@ -49,6 +49,7 @@ class GoalZoneSelector extends StatelessWidget {
       aspectRatio: _boardAspectRatio,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final fontSize = (constraints.maxWidth * 0.035).clamp(10.0, 14.0).toDouble();
           return Stack(
             children: [
               Positioned.fill(
@@ -72,7 +73,7 @@ class GoalZoneSelector extends StatelessWidget {
                               children: row
                                   .map(
                                     (goalZoneId) => Expanded(
-                                      child: _cell(goalZoneId),
+                                      child: _cell(goalZoneId, fontSize),
                                     ),
                                   )
                                   .toList(),

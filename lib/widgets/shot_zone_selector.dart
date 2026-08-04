@@ -38,18 +38,21 @@ class ShotZoneSelector extends StatelessWidget {
     double height,
   ) {
     final isSelected = selectedZoneId == zoneId;
+    final markerWidth = (width * 0.15).clamp(42.0, 68.0).toDouble();
+    final markerHeight = (height * 0.14).clamp(28.0, 40.0).toDouble();
+    final fontSize = (markerHeight * 0.34).clamp(10.0, 13.0).toDouble();
 
     return Positioned(
-      left: (width * anchor.dx) - 34,
-      top: (height * anchor.dy) - 20,
+      left: (width * anchor.dx) - (markerWidth / 2),
+      top: (height * anchor.dy) - (markerHeight / 2),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: enabled ? () => onSelected(zoneId) : null,
           child: Container(
-            width: 68,
-            height: 40,
+            width: markerWidth,
+            height: markerHeight,
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFFEEF4FF) : Colors.white,
               borderRadius: BorderRadius.circular(14),
@@ -63,7 +66,7 @@ class ShotZoneSelector extends StatelessWidget {
               'Z${zoneId.toString().padLeft(2, '0')}',
               style: TextStyle(
                 color: isSelected ? const Color(0xFF1565C0) : const Color(0xFF1A1A1A),
-                fontSize: 13,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -75,18 +78,21 @@ class ShotZoneSelector extends StatelessWidget {
 
   Widget _buildSevenMeterMarker(double width, double height) {
     final isSelected = selectedZoneId == 11;
+    final markerWidth = (width * 0.12).clamp(38.0, 56.0).toDouble();
+    final markerHeight = (height * 0.13).clamp(26.0, 36.0).toDouble();
+    final fontSize = (markerHeight * 0.34).clamp(10.0, 12.0).toDouble();
 
     return Positioned(
-      left: (width * _sevenMeterAnchor.dx) - 28,
-      top: (height * _sevenMeterAnchor.dy) - 18,
+      left: (width * _sevenMeterAnchor.dx) - (markerWidth / 2),
+      top: (height * _sevenMeterAnchor.dy) - (markerHeight / 2),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(999),
           onTap: enabled ? () => onSelected(11) : null,
           child: Container(
-            width: 56,
-            height: 36,
+            width: markerWidth,
+            height: markerHeight,
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFFFFF1E6) : Colors.white,
               borderRadius: BorderRadius.circular(999),
@@ -101,7 +107,7 @@ class ShotZoneSelector extends StatelessWidget {
               style: TextStyle(
                 color: isSelected ? const Color(0xFFF57C00) : const Color(0xFF1A1A1A),
                 fontWeight: FontWeight.w900,
-                fontSize: 12,
+                fontSize: fontSize,
               ),
             ),
           ),

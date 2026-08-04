@@ -114,6 +114,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
 
   String? _rightMatchEventPlayerId;
   String _rightMatchEventType = 'suspension_2min';
+  String _activeMobileTeam = 'home';
 
   @override
   void initState() {
@@ -882,13 +883,13 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.green : null,
-          minimumSize: compact ? const Size(62, 32) : const Size(74, 36),
+          minimumSize: compact ? const Size(54, 30) : const Size(64, 34),
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 10 : 14,
-            vertical: compact ? 6 : 8,
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 5 : 7,
           ),
           textStyle: TextStyle(
-            fontSize: compact ? 12 : 13,
+            fontSize: compact ? 11 : 12,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -898,8 +899,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     }
 
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: compact ? 5 : 7,
+      runSpacing: compact ? 5 : 7,
       children: [
         resultButton('goal', 'Gol'),
         resultButton('out', 'Fora'),
@@ -921,13 +922,13 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.purple : null,
-          minimumSize: compact ? const Size(92, 32) : const Size(108, 36),
+          minimumSize: compact ? const Size(78, 30) : const Size(96, 34),
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 10 : 14,
-            vertical: compact ? 6 : 8,
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 5 : 7,
           ),
           textStyle: TextStyle(
-            fontSize: compact ? 12 : 13,
+            fontSize: compact ? 11 : 12,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -992,8 +993,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
             borderRadius: BorderRadius.circular(14),
             onTap: () => onSelected(id),
             child: Container(
-              width: compact ? 56 : 66,
-              height: compact ? 60 : 70,
+              width: compact ? 48 : 58,
+              height: compact ? 50 : 60,
               decoration: BoxDecoration(
                 color: isSelected ? const Color(0xFFFFB74D) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
@@ -1008,7 +1009,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
                   Text(
                     shirtNumber?.toString() ?? '?',
                     style: TextStyle(
-                      fontSize: compact ? 14 : 16,
+                      fontSize: compact ? 13 : 15,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1016,7 +1017,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
                   Text(
                     labels[0],
                     style: TextStyle(
-                      fontSize: compact ? 8.5 : 10,
+                      fontSize: compact ? 7.8 : 9.4,
                       fontWeight: FontWeight.w800,
                       color: Colors.grey.shade700,
                       height: 1.0,
@@ -1027,7 +1028,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
                   Text(
                     labels[1],
                     style: TextStyle(
-                      fontSize: compact ? 8.5 : 10,
+                      fontSize: compact ? 7.8 : 9.4,
                       fontWeight: FontWeight.w800,
                       color: Colors.grey.shade700,
                       height: 1.0,
@@ -1044,8 +1045,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     }
 
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: compact ? 5 : 7,
+      runSpacing: compact ? 5 : 7,
       children: numberedPlayers.map(playerButton).toList(),
     );
   }
@@ -1061,13 +1062,13 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: isSelected ? Colors.teal : null,
-          minimumSize: compact ? const Size(80, 32) : const Size(94, 36),
+          minimumSize: compact ? const Size(64, 30) : const Size(84, 34),
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 10 : 14,
-            vertical: compact ? 6 : 8,
+            horizontal: compact ? 8 : 12,
+            vertical: compact ? 5 : 7,
           ),
           textStyle: TextStyle(
-            fontSize: compact ? 12 : 13,
+            fontSize: compact ? 11 : 12,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -1077,8 +1078,8 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     }
 
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: compact ? 5 : 7,
+      runSpacing: compact ? 5 : 7,
       children: [
         eventButton('suspension_2min', '2 min'),
         eventButton('yellow_card', 'Amarelo'),
@@ -1090,63 +1091,103 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
   }
 
 Widget _buildClockControls() {
-  Widget periodButton(String value) {
-    final isSelected = _currentPeriod == value;
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final compact = constraints.maxWidth < 760;
 
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.indigo : null,
-        minimumSize: const Size(110, 42),
-      ),
-      onPressed: () => _changePeriod(value),
-      child: Text(_periodLabel(value)),
-    );
-  }
+      Widget periodButton(String value) {
+        final isSelected = _currentPeriod == value;
 
-  return Column(
-    children: [
-      Text(
-        _formattedClock(),
-        style: const TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
+        return ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isSelected ? Colors.indigo : null,
+            minimumSize: compact ? const Size(72, 30) : const Size(94, 34),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 8 : 12,
+              vertical: compact ? 5 : 7,
+            ),
+            textStyle: TextStyle(
+              fontSize: compact ? 11 : 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          onPressed: () => _changePeriod(value),
+          child: Text(_periodLabel(value)),
+        );
+      }
+
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 8 : 12,
+          vertical: compact ? 8 : 10,
         ),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        _periodLabel(_currentPeriod),
-        style: const TextStyle(fontSize: 16),
-      ),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        alignment: WrapAlignment.center,
-        children: [
-          periodButton('first_half'),
-          periodButton('second_half'),
-          periodButton('extra_time_1'),
-          periodButton('extra_time_2'),
-          periodButton('penalties'),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        alignment: WrapAlignment.center,
-        children: [
-          ElevatedButton(
-            onPressed: _toggleClock,
-            child: Text(_isClockRunning ? 'Pause' : 'Play'),
-          ),
-          ElevatedButton(
-            onPressed: _resetClock,
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
-    ],
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Column(
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  _formattedClock(),
+                  style: TextStyle(
+                    fontSize: compact ? 22 : 26,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Chip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text(_periodLabel(_currentPeriod)),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: compact ? const Size(82, 30) : const Size(94, 34),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 8 : 12,
+                      vertical: compact ? 5 : 7,
+                    ),
+                  ),
+                  onPressed: _toggleClock,
+                  icon: Icon(_isClockRunning ? Icons.pause : Icons.play_arrow, size: 16),
+                  label: Text(_isClockRunning ? 'Pause' : 'Play'),
+                ),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: compact ? const Size(64, 30) : const Size(78, 34),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 8 : 12,
+                      vertical: compact ? 5 : 7,
+                    ),
+                  ),
+                  onPressed: _resetClock,
+                  child: const Text('Reset'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: compact ? 5 : 7,
+              runSpacing: compact ? 5 : 7,
+              alignment: WrapAlignment.center,
+              children: [
+                periodButton('first_half'),
+                periodButton('second_half'),
+                periodButton('extra_time_1'),
+                periodButton('extra_time_2'),
+                periodButton('penalties'),
+              ],
+            ),
+          ],
+        ),
+      );
+    },
   );
 }
 
@@ -1154,40 +1195,43 @@ Widget _buildTeamHeader({
   required String teamName,
   required String? shieldUrl,
   required bool isLeft,
+  required bool compact,
 }) {
+  final shieldSize = compact ? 34.0 : 54.0;
+
   return SizedBox(
-    width: 220,
+    width: compact ? 108 : 180,
     child: Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-          width: 76,
-          height: 76,
+          width: shieldSize,
+          height: shieldSize,
           child: shieldUrl != null && shieldUrl.isNotEmpty
               ? Image.network(
                   shieldUrl,
-                  width: 76,
-                  height: 76,
+                  width: shieldSize,
+                  height: shieldSize,
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) {
-                    return const Icon(
+                    return Icon(
                       Icons.shield_outlined,
-                      size: 60,
+                      size: compact ? 28 : 44,
                     );
                   },
                 )
-              : const Icon(
+              : Icon(
                   Icons.shield_outlined,
-                  size: 60,
+                  size: compact ? 28 : 44,
                 ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: compact ? 4 : 8),
         Text(
           teamName,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 18,
+          style: TextStyle(
+            fontSize: compact ? 11 : 15,
             fontWeight: FontWeight.w600,
           ),
           maxLines: 2,
@@ -1204,65 +1248,78 @@ Widget _buildMatchHeader({
   required String? homeShieldUrl,
   required String? awayShieldUrl,
 }) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 60, vertical: 8),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: _buildTeamHeader(
-              teamName: homeName,
-              shieldUrl: homeShieldUrl,
-              isLeft: true,
-            ),
-          ),
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final compact = constraints.maxWidth < 760;
+      final scoreSize = compact ? 34.0 : 48.0;
+      final separatorSize = compact ? 20.0 : 26.0;
+
+      return Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 4 : 32,
+          vertical: compact ? 2 : 6,
         ),
-        const SizedBox(width: 28),
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              '$_scoreHome',
-              style: const TextStyle(
-                fontSize: 56,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'x',
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _buildTeamHeader(
+                  teamName: homeName,
+                  shieldUrl: homeShieldUrl,
+                  isLeft: true,
+                  compact: compact,
                 ),
               ),
             ),
-            Text(
-              '$_scoreAway',
-              style: const TextStyle(
-                fontSize: 56,
-                fontWeight: FontWeight.bold,
+            SizedBox(width: compact ? 10 : 24),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$_scoreHome',
+                  style: TextStyle(
+                    fontSize: scoreSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 14),
+                  child: Text(
+                    'x',
+                    style: TextStyle(
+                      fontSize: separatorSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$_scoreAway',
+                  style: TextStyle(
+                    fontSize: scoreSize,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(width: compact ? 10 : 24),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: _buildTeamHeader(
+                  teamName: awayName,
+                  shieldUrl: awayShieldUrl,
+                  isLeft: false,
+                  compact: compact,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(width: 28),
-        Expanded(
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: _buildTeamHeader(
-              teamName: awayName,
-              shieldUrl: awayShieldUrl,
-              isLeft: false,
-            ),
-          ),
-        ),
-      ],
-    ),
+      );
+    },
   );
 }
 
@@ -1481,7 +1538,7 @@ Widget _buildMatchHeader({
   }) {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(compact ? 10 : 12),
+        padding: EdgeInsets.all(compact ? 8 : 10),
         child: Column(
           children: [
             Align(
@@ -1556,10 +1613,10 @@ Widget _buildMatchHeader({
   }) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(compact ? 10 : 12),
+      padding: EdgeInsets.all(compact ? 7 : 10),
       decoration: BoxDecoration(
         color: const Color(0xFFF7F8FA),
-        borderRadius: BorderRadius.circular(compact ? 14 : 18),
+        borderRadius: BorderRadius.circular(compact ? 12 : 16),
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
@@ -1569,10 +1626,10 @@ Widget _buildMatchHeader({
             title,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: compact ? 13 : 14,
+              fontSize: compact ? 12 : 13,
             ),
           ),
-          SizedBox(height: compact ? 8 : 10),
+          SizedBox(height: compact ? 6 : 8),
           child,
         ],
       ),
@@ -1607,22 +1664,22 @@ Widget _buildMatchHeader({
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 760;
-        final boardGap = compact ? 8.0 : 12.0;
+        final boardGap = compact ? 6.0 : 10.0;
 
         return Card(
           child: Padding(
-            padding: EdgeInsets.all(compact ? 10 : 12),
+            padding: EdgeInsets.all(compact ? 8 : 10),
             child: Column(
               children: [
                 Text(
                   title,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: compact ? 16 : 18,
+                    fontSize: compact ? 14 : 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: compact ? 10 : 12),
+                SizedBox(height: compact ? 8 : 10),
                 LayoutBuilder(
                   builder: (context, boardConstraints) {
                     final goalBoard = _buildSelectorCard(
@@ -1633,11 +1690,18 @@ Widget _buildMatchHeader({
                         children: [
                           Opacity(
                             opacity: goalZoneEnabled ? 1 : 0.42,
-                            child: RepaintBoundary(
-                              child: GoalZoneSelector(
-                                selectedGoalZoneId: selectedGoalZoneId,
-                                onSelected: onGoalZoneSelected,
-                                enabled: goalZoneEnabled,
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: compact ? 280 : 360,
+                                ),
+                                child: RepaintBoundary(
+                                  child: GoalZoneSelector(
+                                    selectedGoalZoneId: selectedGoalZoneId,
+                                    onSelected: onGoalZoneSelected,
+                                    enabled: goalZoneEnabled,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1652,10 +1716,17 @@ Widget _buildMatchHeader({
                     final shotBoard = _buildSelectorCard(
                       title: 'Zona do chute',
                       compact: compact,
-                      child: RepaintBoundary(
-                        child: ShotZoneSelector(
-                          selectedZoneId: selectedZoneId,
-                          onSelected: onZoneSelected,
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: compact ? 280 : 360,
+                          ),
+                          child: RepaintBoundary(
+                            child: ShotZoneSelector(
+                              selectedZoneId: selectedZoneId,
+                              onSelected: onZoneSelected,
+                            ),
+                          ),
                         ),
                       ),
                     );
@@ -1670,7 +1741,7 @@ Widget _buildMatchHeader({
                     );
                   },
                 ),
-                SizedBox(height: compact ? 12 : 16),
+                SizedBox(height: compact ? 8 : 12),
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -1678,14 +1749,14 @@ Widget _buildMatchHeader({
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _buildPlayerButtons(
                   players: players,
                   selectedPlayerId: selectedPlayerId,
                   onSelected: onPlayerChanged,
                   compact: compact,
                 ),
-                SizedBox(height: compact ? 12 : 16),
+                SizedBox(height: compact ? 8 : 12),
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -1693,14 +1764,14 @@ Widget _buildMatchHeader({
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 _buildResultButtons(
                   selectedResult: selectedResult,
                   onSelected: onResultChanged,
                   compact: compact,
                 ),
                 if (selectedResult == 'goal') ...[
-                  SizedBox(height: compact ? 12 : 16),
+                  SizedBox(height: compact ? 8 : 12),
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -1708,25 +1779,25 @@ Widget _buildMatchHeader({
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   _buildAttackContextButtons(
                     selectedAttackContext: selectedAttackContext,
                     onSelected: onAttackContextChanged,
                     compact: compact,
                   ),
                 ],
-                SizedBox(height: compact ? 12 : 16),
+                SizedBox(height: compact ? 8 : 12),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      minimumSize: Size.fromHeight(compact ? 36 : 42),
+                      minimumSize: Size.fromHeight(compact ? 32 : 38),
                       padding: EdgeInsets.symmetric(
                         horizontal: compact ? 12 : 16,
                         vertical: compact ? 8 : 10,
                       ),
                       textStyle: TextStyle(
-                        fontSize: compact ? 13 : 14,
+                        fontSize: compact ? 12 : 13,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1736,7 +1807,7 @@ Widget _buildMatchHeader({
                         : const Text('Salvar evento'),
                   ),
                 ),
-                SizedBox(height: compact ? 16 : 20),
+                SizedBox(height: compact ? 10 : 14),
                 _buildDisciplinaryPanel(
                   title: title,
                   players: players,
@@ -1754,6 +1825,212 @@ Widget _buildMatchHeader({
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMobileTeamSwitch({
+    required String homeName,
+    required String awayName,
+  }) {
+    Widget option({
+      required String value,
+      required String label,
+      required int score,
+    }) {
+      final selected = _activeMobileTeam == value;
+
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            setState(() {
+              _activeMobileTeam = value;
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFF00796B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? const Color(0xFF00796B) : Colors.grey.shade300,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: selected ? Colors.white : const Color(0xFF162238),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '$score',
+                  style: TextStyle(
+                    color: selected ? Colors.white : const Color(0xFF162238),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF5F5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          option(value: 'home', label: homeName, score: _scoreHome),
+          const SizedBox(width: 4),
+          option(value: 'away', label: awayName, score: _scoreAway),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileScoutConsole({
+    required String homeName,
+    required String awayName,
+  }) {
+    final showHome = _activeMobileTeam == 'home';
+
+    return Column(
+      children: [
+        if (showHome)
+          ValueListenableBuilder<_ShotDraft>(
+            valueListenable: _leftShotDraft,
+            builder: (context, draft, _) {
+              return _buildTeamPanel(
+                title: homeName,
+                players: _homePlayers,
+                selectedPlayerId: draft.playerId,
+                onPlayerChanged: (value) {
+                  _leftShotDraft.value = draft.copyWith(playerId: value);
+                },
+                selectedZoneId: draft.zoneId,
+                onZoneSelected: (value) {
+                  _leftShotDraft.value = draft.zoneId == value
+                      ? draft.copyWith(clearZoneId: true)
+                      : draft.copyWith(zoneId: value);
+                },
+                selectedGoalZoneId: draft.goalZoneId,
+                onGoalZoneSelected: (value) {
+                  _leftShotDraft.value = draft.goalZoneId == value
+                      ? draft.copyWith(clearGoalZoneId: true)
+                      : draft.copyWith(goalZoneId: value);
+                },
+                selectedResult: draft.result,
+                onResultChanged: (value) {
+                  _leftShotDraft.value = draft.copyWith(
+                    result: value,
+                    attackContext: value == 'goal' ? draft.attackContext : 'normal',
+                    clearGoalZoneId: !_goalZoneIsRequired(value),
+                  );
+                },
+                selectedAttackContext: draft.attackContext,
+                onAttackContextChanged: (value) {
+                  _leftShotDraft.value = draft.copyWith(attackContext: value);
+                },
+                onSave: _saveLeftEvent,
+                isSaving: _isSavingLeft,
+                selectedGenericPlayerId: _leftMatchEventPlayerId,
+                onGenericPlayerChanged: (value) {
+                  setState(() {
+                    _leftMatchEventPlayerId = value;
+                  });
+                },
+                selectedGenericEventType: _leftMatchEventType,
+                onGenericEventTypeChanged: (value) {
+                  setState(() {
+                    _leftMatchEventType = value;
+                    if (!_leftGenericNeedsPlayer()) {
+                      _leftMatchEventPlayerId = null;
+                    }
+                  });
+                },
+                onSaveGenericEvent: _saveLeftMatchEvent,
+                isSavingGenericEvent: _isSavingLeftMatchEvent,
+                genericNeedsPlayer: _leftGenericNeedsPlayer(),
+              );
+            },
+          )
+        else
+          ValueListenableBuilder<_ShotDraft>(
+            valueListenable: _rightShotDraft,
+            builder: (context, draft, _) {
+              return _buildTeamPanel(
+                title: awayName,
+                players: _awayPlayers,
+                selectedPlayerId: draft.playerId,
+                onPlayerChanged: (value) {
+                  _rightShotDraft.value = draft.copyWith(playerId: value);
+                },
+                selectedZoneId: draft.zoneId,
+                onZoneSelected: (value) {
+                  _rightShotDraft.value = draft.zoneId == value
+                      ? draft.copyWith(clearZoneId: true)
+                      : draft.copyWith(zoneId: value);
+                },
+                selectedGoalZoneId: draft.goalZoneId,
+                onGoalZoneSelected: (value) {
+                  _rightShotDraft.value = draft.goalZoneId == value
+                      ? draft.copyWith(clearGoalZoneId: true)
+                      : draft.copyWith(goalZoneId: value);
+                },
+                selectedResult: draft.result,
+                onResultChanged: (value) {
+                  _rightShotDraft.value = draft.copyWith(
+                    result: value,
+                    attackContext: value == 'goal' ? draft.attackContext : 'normal',
+                    clearGoalZoneId: !_goalZoneIsRequired(value),
+                  );
+                },
+                selectedAttackContext: draft.attackContext,
+                onAttackContextChanged: (value) {
+                  _rightShotDraft.value = draft.copyWith(attackContext: value);
+                },
+                onSave: _saveRightEvent,
+                isSaving: _isSavingRight,
+                selectedGenericPlayerId: _rightMatchEventPlayerId,
+                onGenericPlayerChanged: (value) {
+                  setState(() {
+                    _rightMatchEventPlayerId = value;
+                  });
+                },
+                selectedGenericEventType: _rightMatchEventType,
+                onGenericEventTypeChanged: (value) {
+                  setState(() {
+                    _rightMatchEventType = value;
+                    if (!_rightGenericNeedsPlayer()) {
+                      _rightMatchEventPlayerId = null;
+                    }
+                  });
+                },
+                onSaveGenericEvent: _saveRightMatchEvent,
+                isSavingGenericEvent: _isSavingRightMatchEvent,
+                genericNeedsPlayer: _rightGenericNeedsPlayer(),
+              );
+            },
+          ),
+      ],
     );
   }
 
@@ -1777,7 +2054,7 @@ Widget _buildMatchHeader({
         autofocus: true,
         onKeyEvent: _handleScoutHotkeys,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           child: Column(
             children: [
               _buildMatchHeader(
@@ -1786,9 +2063,9 @@ Widget _buildMatchHeader({
                 homeShieldUrl: _teamShields[widget.match.homeTeamId],
                 awayShieldUrl: _teamShields[widget.match.awayTeamId],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               _buildClockControls(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
              
               LayoutBuilder(
                 builder: (context, constraints) {
@@ -1836,6 +2113,53 @@ Widget _buildMatchHeader({
                     },
                   );
 
+                  if (constraints.maxWidth < 700) {
+                    final homeIsActive = _activeMobileTeam == 'home';
+                    final activeGoalkeeperField = DropdownButtonFormField<String>(
+                      initialValue: homeIsActive
+                          ? _currentAwayGoalkeeperId
+                          : _currentHomeGoalkeeperId,
+                      decoration: InputDecoration(
+                        labelText: homeIsActive
+                            ? 'Goleiro defendendo - $awayName'
+                            : 'Goleiro defendendo - $homeName',
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: (homeIsActive ? _awayGoalkeepers : _homeGoalkeepers)
+                          .map(
+                            (item) => DropdownMenuItem<String>(
+                              value: item['id'] as String,
+                              child: Text(
+                                item['full_name'] as String,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          if (homeIsActive) {
+                            _currentAwayGoalkeeperId = value;
+                          } else {
+                            _currentHomeGoalkeeperId = value;
+                          }
+                        });
+                      },
+                    );
+
+                    return Column(
+                      children: [
+                        _buildMobileTeamSwitch(
+                          homeName: homeName,
+                          awayName: awayName,
+                        ),
+                        const SizedBox(height: 8),
+                        activeGoalkeeperField,
+                      ],
+                    );
+                  }
+
                   if (vertical) {
                     return Column(
                       children: [
@@ -1856,16 +2180,23 @@ Widget _buildMatchHeader({
                 },
               ),
               if (_errorMessage != null) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Text(
                   _errorMessage!,
                   style: const TextStyle(color: Colors.red),
                   textAlign: TextAlign.center,
                 ),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               LayoutBuilder(
                 builder: (context, constraints) {
+                  if (constraints.maxWidth < 700) {
+                    return _buildMobileScoutConsole(
+                      homeName: homeName,
+                      awayName: awayName,
+                    );
+                  }
+
                   final homePanel = ValueListenableBuilder<_ShotDraft>(
                     valueListenable: _leftShotDraft,
                     builder: (context, draft, _) {
@@ -1991,14 +2322,14 @@ Widget _buildMatchHeader({
                     ],
                   );
 
-                  if (constraints.maxWidth >= 900) {
+                  if (constraints.maxWidth >= 820) {
                     return row;
                   }
 
                   return SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: SizedBox(
-                      width: 900,
+                      width: 820,
                       child: row,
                     ),
                   );
