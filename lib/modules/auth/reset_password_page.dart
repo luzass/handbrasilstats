@@ -54,6 +54,44 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   Future<void> _prepareRecoverySession() async {
     final supabase = Supabase.instance.client;
     final code = Uri.base.queryParameters['code'];
+    final fragmentParameters = _getFragmentParameters();
+    final accessToken = fragmentParameters['access_token'];
+    final refreshToken = fragmentParameters['refresh_token'];
+
+    if (accessToken != null &&
+        accessToken.isNotEmpty &&
+        refreshToken != null &&
+        refreshToken.isNotEmpty) {
+      try {
+        await supabase.auth.setSession(
+          refreshToken,
+          accessToken: accessToken,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _hasRecoverySession = true;
+          _isPreparingRecovery = false;
+          _errorMessage = null;
+        });
+      } on AuthException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _hasRecoverySession = false;
+          _isPreparingRecovery = false;
+          _errorMessage = e.message;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _hasRecoverySession = false;
+          _isPreparingRecovery = false;
+          _errorMessage =
+              'Nao conseguimos validar esse link. Solicite uma nova recuperacao de senha.';
+        });
+      }
+      return;
+    }
 
     if (code != null && code.isNotEmpty) {
       try {
@@ -70,7 +108,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         setState(() {
           _hasRecoverySession = false;
           _isPreparingRecovery = false;
-          _errorMessage = e.message;
+          _errorMessage = e.message.contains('Code verifier')
+              ? 'Esse link foi gerado no formato antigo. Solicite uma nova recuperacao de senha.'
+              : e.message;
         });
       } catch (_) {
         if (!mounted) return;
@@ -98,6 +138,21 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       _hasRecoverySession = false;
       _isPreparingRecovery = false;
     });
+  }
+
+  Map<String, String> _getFragmentParameters() {
+    var fragment = Uri.base.fragment;
+    if (fragment.isEmpty) return const {};
+
+    if (fragment.startsWith('/') && fragment.contains('?')) {
+      fragment = fragment.substring(fragment.indexOf('?') + 1);
+    }
+
+    try {
+      return Uri.splitQueryString(fragment);
+    } catch (_) {
+      return const {};
+    }
   }
 
   Future<void> _updatePassword() async {
