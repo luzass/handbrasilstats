@@ -55,6 +55,35 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     final supabase = Supabase.instance.client;
     final code = Uri.base.queryParameters['code'];
 
+    if (code != null && code.isNotEmpty) {
+      try {
+        await supabase.auth.exchangeCodeForSession(code);
+
+        if (!mounted) return;
+        setState(() {
+          _hasRecoverySession = true;
+          _isPreparingRecovery = false;
+          _errorMessage = null;
+        });
+      } on AuthException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _hasRecoverySession = false;
+          _isPreparingRecovery = false;
+          _errorMessage = e.message;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _hasRecoverySession = false;
+          _isPreparingRecovery = false;
+          _errorMessage =
+              'Nao conseguimos validar esse link. Solicite uma nova recuperacao de senha.';
+        });
+      }
+      return;
+    }
+
     if (supabase.auth.currentSession != null) {
       if (!mounted) return;
       setState(() {
@@ -64,40 +93,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       return;
     }
 
-    if (code == null || code.isEmpty) {
-      if (!mounted) return;
-      setState(() {
-        _hasRecoverySession = false;
-        _isPreparingRecovery = false;
-      });
-      return;
-    }
-
-    try {
-      await supabase.auth.exchangeCodeForSession(code);
-
-      if (!mounted) return;
-      setState(() {
-        _hasRecoverySession = true;
-        _isPreparingRecovery = false;
-        _errorMessage = null;
-      });
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _hasRecoverySession = false;
-        _isPreparingRecovery = false;
-        _errorMessage = e.message;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _hasRecoverySession = false;
-        _isPreparingRecovery = false;
-        _errorMessage =
-            'Nao conseguimos validar esse link. Solicite uma nova recuperacao de senha.';
-      });
-    }
+    if (!mounted) return;
+    setState(() {
+      _hasRecoverySession = false;
+      _isPreparingRecovery = false;
+    });
   }
 
   Future<void> _updatePassword() async {

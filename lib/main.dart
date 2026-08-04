@@ -9,6 +9,7 @@ import 'app.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
+  final initialRoute = _initialRouteFromUri(Uri.base);
 
   String? supabaseUrl;
   String? supabaseAnonKey;
@@ -35,5 +36,21 @@ Future<void> main() async {
     anonKey: supabaseAnonKey,
   );
 
-  runApp(const ProviderScope(child: App()));
+  runApp(ProviderScope(child: App(initialRoute: initialRoute)));
+}
+
+String _initialRouteFromUri(Uri uri) {
+  final hasRecoveryCode = uri.queryParameters.containsKey('code');
+  final isResetPath =
+      uri.path == '/reset-password' || uri.path == '/reset-password/';
+  final isRecoveryFragment = uri.fragment.contains('type=recovery') ||
+      uri.fragment.contains('access_token=');
+
+  if (isResetPath || hasRecoveryCode || isRecoveryFragment) {
+    final query = uri.hasQuery ? '?${uri.query}' : '';
+    final fragment = uri.hasFragment ? '#${uri.fragment}' : '';
+    return '/reset-password$query$fragment';
+  }
+
+  return uri.path.isEmpty ? '/' : uri.path;
 }

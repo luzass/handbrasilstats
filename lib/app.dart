@@ -8,7 +8,12 @@ import 'modules/auth/reset_password_page.dart';
 import 'modules/splash/splash_page.dart';
 
 class App extends StatelessWidget {
-  const App({super.key});
+  final String initialRoute;
+
+  const App({
+    super.key,
+    this.initialRoute = '/',
+  });
 
   Route<dynamic> _buildRoute(RouteSettings settings) {
     final uri = Uri.parse(settings.name ?? '/');
@@ -48,6 +53,7 @@ class App extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'HandBrasil Stats',
       theme: AppTheme.light,
+      initialRoute: initialRoute,
       onGenerateRoute: _buildRoute,
     );
   }

@@ -7,6 +7,7 @@ import '../../widgets/app_backdrop.dart';
 import '../admin/admin_home_page.dart';
 import '../client/client_home_page.dart';
 import '../home/profile_type_selection_page.dart';
+import '../auth/reset_password_page.dart';
 import '../scout/scout_home_page.dart';
 import '../viewer/viewer_home_page.dart';
 
@@ -28,6 +29,12 @@ class _SplashPageState extends State<SplashPage> {
 
   Future<void> _checkSession() async {
     await Future.delayed(const Duration(milliseconds: 800));
+
+    if (_isRecoveryUrl(Uri.base)) {
+      if (!mounted) return;
+      _goTo(const ResetPasswordPage());
+      return;
+    }
 
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
@@ -75,6 +82,14 @@ class _SplashPageState extends State<SplashPage> {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => page),
     );
+  }
+
+  bool _isRecoveryUrl(Uri uri) {
+    return uri.path == '/reset-password' ||
+        uri.path == '/reset-password/' ||
+        uri.queryParameters.containsKey('code') ||
+        uri.fragment.contains('type=recovery') ||
+        uri.fragment.contains('access_token=');
   }
 
   @override
