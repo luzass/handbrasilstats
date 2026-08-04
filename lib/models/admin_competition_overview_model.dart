@@ -20,6 +20,7 @@ class CompetitionMatchOverview {
   final String? venueName;
   final String? venueCity;
   final String? venueState;
+  final String matchStage;
   final String status;
   final int scoreHome;
   final int scoreAway;
@@ -32,6 +33,7 @@ class CompetitionMatchOverview {
     required this.venueName,
     required this.venueCity,
     required this.venueState,
+    required this.matchStage,
     required this.status,
     required this.scoreHome,
     required this.scoreAway,

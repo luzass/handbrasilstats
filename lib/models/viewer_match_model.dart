@@ -12,6 +12,7 @@ class ViewerMatchModel {
   final int scoreAway;
   final String status;
   final String scoutStatus;
+  final String matchStage;
   final String? matchDatetime;
   final String? currentPeriod;
   final int? currentMinute;
@@ -31,6 +32,7 @@ class ViewerMatchModel {
     required this.scoreAway,
     required this.status,
     required this.scoutStatus,
+    required this.matchStage,
     required this.matchDatetime,
     required this.currentPeriod,
     required this.currentMinute,
@@ -53,6 +55,7 @@ class ViewerMatchModel {
       scoreAway: map['score_away'] as int? ?? 0,
       status: map['status'] as String? ?? 'agendado',
       scoutStatus: map['scout_status'] as String? ?? 'nao_iniciado',
+      matchStage: map['match_stage'] as String? ?? 'classificatoria',
       matchDatetime: map['match_datetime']?.toString(),
       currentPeriod: map['current_period']?.toString(),
       currentMinute: map['current_minute'] as int?,

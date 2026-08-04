@@ -112,7 +112,24 @@ class _ViewerCompetitionMatchesPageState
   String _phaseLabel(ViewerMatchModel match) {
     if (match.status == 'em_andamento') return 'Ao vivo';
     if (match.status == 'finalizado') return 'FT';
-    return 'Agendado';
+    return _stageLabel(match.matchStage);
+  }
+
+  String _stageLabel(String stage) {
+    switch (stage) {
+      case 'classificatoria':
+        return 'Class.';
+      case 'final':
+        return 'Final';
+      case 'terceiro_lugar':
+        return '3 lugar';
+      case 'semifinal':
+        return 'Semi';
+      case 'quartas':
+        return 'Quartas';
+      default:
+        return 'Jogo';
+    }
   }
 
   Color _phaseColor(ViewerMatchModel match) {

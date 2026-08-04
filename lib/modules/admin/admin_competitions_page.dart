@@ -408,6 +408,23 @@ class _CompetitionOverviewContent extends StatelessWidget {
     }
   }
 
+  String _stageLabel(String stage) {
+    switch (stage) {
+      case 'classificatoria':
+        return 'Classificatoria';
+      case 'final':
+        return 'Final';
+      case 'terceiro_lugar':
+        return 'Disputa 3 lugar';
+      case 'semifinal':
+        return 'Semifinal';
+      case 'quartas':
+        return 'Quartas';
+      default:
+        return 'Outro';
+    }
+  }
+
   String _venueLabel(CompetitionMatchOverview match) {
     final parts = [
       if (match.venueName != null && match.venueName!.isNotEmpty) match.venueName!,
@@ -731,6 +748,22 @@ class _CompetitionOverviewContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: _lineColor),
+                ),
+                child: Text(
+                  _stageLabel(match.matchStage),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   '${_formatDate(match.matchDatetime)} • ${_formatTime(match.matchDatetime)} • ${_venueLabel(match)}',
@@ -794,7 +827,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
     return _buildDarkSection(
       title: 'Tabela da competição',
       subtitle:
-          'Vitória vale 2 pontos, empate vale 1 e derrota vale 0. Jogos contam apenas quando estão finalizados.',
+          'Vitoria vale 2 pontos, empate vale 1 e derrota vale 0. A tabela conta apenas jogos classificatorios finalizados.',
       child: LayoutBuilder(
         builder: (context, constraints) {
           final tableWidth = math.max(constraints.maxWidth, 980.0).toDouble();

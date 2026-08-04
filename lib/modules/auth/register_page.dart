@@ -29,8 +29,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String? _errorMessage;
 
+  String get _effectiveProfileType => 'visitor';
+
   String get _profileLabel {
-    switch (widget.profileType) {
+    switch (_effectiveProfileType) {
       case 'team':
         return 'Time';
       case 'player':
@@ -42,7 +44,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   String get _profileDescription {
-    switch (widget.profileType) {
+    switch (_effectiveProfileType) {
       case 'team':
         return 'Crie sua conta para continuar e depois cadastrar o time.';
       case 'player':
@@ -56,7 +58,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _showSuccessDialog() async {
     String message;
 
-    switch (widget.profileType) {
+    switch (_effectiveProfileType) {
       case 'team':
         message =
             'Cadastro finalizado. Confirme seu e-mail. Depois do primeiro acesso, vamos seguir para o cadastro completo do time.';
@@ -141,7 +143,8 @@ class _RegisterPageState extends State<RegisterPage> {
         data: {
           'full_name': fullName,
           'phone': phone,
-          'profile_type': widget.profileType,
+          'profile_type': _effectiveProfileType,
+          'role': 'viewer',
         },
       );
 

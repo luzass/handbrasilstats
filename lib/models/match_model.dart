@@ -7,6 +7,7 @@ class MatchModel {
   final String? venueName;
   final String? venueCity;
   final String? venueState;
+  final String matchStage;
   final String status;
   final String scoutStatus;
   final String? currentPeriod;
@@ -25,6 +26,7 @@ class MatchModel {
     required this.venueName,
     required this.venueCity,
     required this.venueState,
+    required this.matchStage,
     required this.status,
     required this.scoutStatus,
     required this.currentPeriod,
@@ -45,6 +47,7 @@ class MatchModel {
       venueName: map['venue_name'] as String?,
       venueCity: map['venue_city'] as String?,
       venueState: map['venue_state'] as String?,
+      matchStage: map['match_stage'] as String? ?? 'classificatoria',
       status: map['status'] as String? ?? 'agendado',
       scoutStatus: map['scout_status'] as String? ?? 'nao_iniciado',
       currentPeriod: map['current_period']?.toString(),
@@ -65,6 +68,7 @@ class MatchModel {
       'venue_name': venueName,
       'venue_city': venueCity,
       'venue_state': venueState,
+      'match_stage': matchStage,
       'status': status,
       'scout_status': scoutStatus,
       'current_period': currentPeriod,
@@ -83,6 +87,7 @@ class MatchModel {
       'venue_name': venueName,
       'venue_city': venueCity,
       'venue_state': venueState,
+      'match_stage': matchStage,
       'status': status,
       'scout_status': scoutStatus,
       'current_period': currentPeriod,

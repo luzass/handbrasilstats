@@ -36,6 +36,7 @@ class AdminCompetitionOverviewRepository {
           venue_name,
           venue_city,
           venue_state,
+          match_stage,
           status,
           score_home,
           score_away,
@@ -71,6 +72,7 @@ class AdminCompetitionOverviewRepository {
           venueName: item['venue_name'] as String?,
           venueCity: item['venue_city'] as String?,
           venueState: item['venue_state'] as String?,
+          matchStage: item['match_stage'] as String? ?? 'classificatoria',
           status: item['status'] as String? ?? 'agendado',
           scoreHome: item['score_home'] as int? ?? 0,
           scoreAway: item['score_away'] as int? ?? 0,
@@ -161,7 +163,11 @@ class AdminCompetitionOverviewRepository {
       table[team.id] = _StandingsAccumulator(team: team);
     }
 
-    for (final match in matches.where((item) => item.status == 'finalizado')) {
+    for (final match in matches.where(
+      (item) =>
+          item.status == 'finalizado' &&
+          item.matchStage == 'classificatoria',
+    )) {
       final home = table.putIfAbsent(
         match.homeTeam.id,
         () => _StandingsAccumulator(team: match.homeTeam),

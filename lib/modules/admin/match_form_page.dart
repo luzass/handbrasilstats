@@ -33,6 +33,7 @@ class _MatchFormPageState extends State<MatchFormPage> {
   String? _competitionId;
   String? _homeTeamId;
   String? _awayTeamId;
+  String _matchStage = 'classificatoria';
   String _status = 'agendado';
   String _scoutStatus = 'nao_iniciado';
   String? _currentPeriod;
@@ -102,6 +103,7 @@ class _MatchFormPageState extends State<MatchFormPage> {
           _venueCityController.text = item.venueCity ?? '';
           _venueStateController.text = item.venueState ?? '';
           _notesController.text = item.notes ?? '';
+          _matchStage = item.matchStage;
           _status = item.status;
           _scoutStatus = item.scoutStatus;
           _currentPeriod = item.currentPeriod;
@@ -166,6 +168,7 @@ class _MatchFormPageState extends State<MatchFormPage> {
         venueState: _venueStateController.text.trim().isEmpty
             ? null
             : _venueStateController.text.trim(),
+        matchStage: _matchStage,
         status: _status,
         scoutStatus: _scoutStatus,
         currentPeriod: _currentPeriod,
@@ -313,6 +316,33 @@ class _MatchFormPageState extends State<MatchFormPage> {
             _buildTextField(_venueNameController, 'Nome do ginásio'),
             _buildTextField(_venueCityController, 'Cidade'),
             _buildTextField(_venueStateController, 'Estado'),
+            DropdownButtonFormField<String>(
+              initialValue: _matchStage,
+              decoration: const InputDecoration(
+                labelText: 'Fase do jogo',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'classificatoria',
+                  child: Text('Classificatoria / todos contra todos'),
+                ),
+                DropdownMenuItem(value: 'final', child: Text('Final')),
+                DropdownMenuItem(
+                  value: 'terceiro_lugar',
+                  child: Text('Disputa 3 lugar'),
+                ),
+                DropdownMenuItem(value: 'semifinal', child: Text('Semifinal')),
+                DropdownMenuItem(value: 'quartas', child: Text('Quartas')),
+                DropdownMenuItem(value: 'outro', child: Text('Outro')),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _matchStage = value ?? 'classificatoria';
+                });
+              },
+            ),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _status,
               decoration: const InputDecoration(

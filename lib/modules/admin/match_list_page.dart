@@ -124,6 +124,23 @@ class _MatchListPageState extends State<MatchListPage> {
     return '$day/$month - $hour:$minute';
   }
 
+  String _stageLabel(String stage) {
+    switch (stage) {
+      case 'classificatoria':
+        return 'Classificatoria';
+      case 'final':
+        return 'Final';
+      case 'terceiro_lugar':
+        return 'Disputa 3 lugar';
+      case 'semifinal':
+        return 'Semifinal';
+      case 'quartas':
+        return 'Quartas';
+      default:
+        return 'Outro';
+    }
+  }
+
   Widget _statusChip(String label, Color background, Color foreground) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -283,6 +300,11 @@ class _MatchListPageState extends State<MatchListPage> {
                   'Scout: ${item.scoutStatus}',
                   const Color(0xFFEAF1FB),
                   AppThemeColors.info,
+                ),
+                _statusChip(
+                  _stageLabel(item.matchStage),
+                  const Color(0xFFFFF5E6),
+                  const Color(0xFFB36B00),
                 ),
               ],
             ),

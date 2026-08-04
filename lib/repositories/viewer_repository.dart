@@ -5,12 +5,17 @@ import '../models/viewer_match_model.dart';
 
 class ViewerRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
+  static const _visibleCompetitionNames = [
+    'Campeonato W.A Masculino',
+    'Campeonato W.A Feminino',
+  ];
 
   Future<List<CompetitionModel>> getFeaturedCompetitions() async {
     final response = await _supabase
         .from('competitions')
         .select()
         .eq('is_featured_for_viewer', true)
+        .inFilter('name', _visibleCompetitionNames)
         .order('year', ascending: false)
         .order('name', ascending: true);
 
@@ -31,6 +36,7 @@ class ViewerRepository {
           score_away,
           status,
           scout_status,
+          match_stage,
           match_datetime,
           current_period,
           current_minute,
@@ -59,6 +65,7 @@ class ViewerRepository {
           score_away,
           status,
           scout_status,
+          match_stage,
           match_datetime,
           current_period,
           current_minute,
