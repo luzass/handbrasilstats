@@ -142,49 +142,55 @@ class ScoutLanceMapSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: AspectRatio(
-        aspectRatio: _boardAspectRatio,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final height = constraints.maxHeight;
+      child: ClipRect(
+        child: Align(
+          alignment: Alignment.topCenter,
+          heightFactor: bottomY,
+          child: AspectRatio(
+            aspectRatio: _boardAspectRatio,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final height = constraints.maxHeight;
 
-            return Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF07152D),
-                    Color(0xFF0A1C3C),
-                    Color(0xFF061024),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFF173A66)),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF07152D).withValues(alpha: 0.30),
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _ScoutLanceMapPainter(),
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFF07152D),
+                        Color(0xFF0A1C3C),
+                        Color(0xFF061024),
+                      ],
                     ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFF173A66)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF07152D).withValues(alpha: 0.30),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  _goalGrid(width, height),
-                  for (final entry in _shotZoneAnchors.entries)
-                    _shotMarker(entry.key, entry.value, width, height),
-                  _sevenMeterMarker(width, height),
-                ],
-              ),
-            );
-          },
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: _ScoutLanceMapPainter(),
+                        ),
+                      ),
+                      _goalGrid(width, height),
+                      for (final entry in _shotZoneAnchors.entries)
+                        _shotMarker(entry.key, entry.value, width, height),
+                      _sevenMeterMarker(width, height),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
