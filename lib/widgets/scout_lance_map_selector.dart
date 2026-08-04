@@ -15,7 +15,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
   static const double nineMeterExtra = 0.12; // extra depth of the 9m line, below the 6m apex
   static const double sixMeterApexY = goalLineY + sixMeterDepth; // ~0.48
   static const double nineMeterApexY = sixMeterApexY + nineMeterExtra; // ~0.61
-  static const double bottomY = 0.78;
+  static const double bottomY = 0.72;
 
   final int? selectedZoneId;
   final int? selectedGoalZoneId;
@@ -46,9 +46,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
     2: Offset(0.33, nineMeterApexY - 0.02),
     3: Offset(0.50, nineMeterApexY - 0.02),
     4: Offset(0.67, nineMeterApexY - 0.02),
-    9: Offset(0.20, bottomY - 0.06),
-    8: Offset(0.50, bottomY - 0.05),
-    7: Offset(0.80, bottomY - 0.06),
+    9: Offset(0.20, bottomY - 0.04),
+    8: Offset(0.50, bottomY - 0.03),
+    7: Offset(0.80, bottomY - 0.04),
   };
 
   static const Offset _sevenMeterAnchor = Offset(0.50, 0.61);
@@ -483,26 +483,30 @@ class _ScoutLanceMapPainter extends CustomPainter {
     // The long continuation of these guide lines is intentionally clipped out,
     // matching the compact attack-map reference instead of showing a full court.
     final bottomY = height * ScoutLanceMapSelector.bottomY;
-    final leftReference = Offset(width * 0.34, goalLineY + areaRy * 0.68);
-    final rightReference = Offset(width * 0.66, goalLineY + areaRy * 0.68);
+    final leftSideStart = Offset(width * 0.23, goalLineY + areaRy * 0.72);
+    final rightSideStart = Offset(width * 0.77, goalLineY + areaRy * 0.72);
+    final leftSideEnd = Offset(width * 0.02, bottomY);
+    final rightSideEnd = Offset(width * 0.98, bottomY);
+    final leftInnerStart = Offset(width * 0.42, goalLineY + areaRy * 1.02);
+    final rightInnerStart = Offset(width * 0.58, goalLineY + areaRy * 1.02);
 
     canvas.drawLine(
-      leftReference,
-      Offset(width * 0.01, bottomY),
+      leftSideStart,
+      leftSideEnd,
       linePaint,
     );
     canvas.drawLine(
-      rightReference,
-      Offset(width * 0.99, bottomY),
+      rightSideStart,
+      rightSideEnd,
       linePaint,
     );
     canvas.drawLine(
-      Offset(width * 0.44, goalLineY + areaRy * 1.02),
+      leftInnerStart,
       Offset(width * 0.34, bottomY),
       linePaint,
     );
     canvas.drawLine(
-      Offset(width * 0.56, goalLineY + areaRy * 1.02),
+      rightInnerStart,
       Offset(width * 0.66, bottomY),
       linePaint,
     );
