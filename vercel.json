@@ -4,7 +4,6 @@
   "installCommand": "if [ ! -d ./.flutter ]; then git clone --depth 1 --branch stable https://github.com/flutter/flutter.git ./.flutter; fi && ./.flutter/bin/flutter config --enable-web && ./.flutter/bin/flutter pub get",
   "buildCommand": "printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n' \"$SUPABASE_URL\" \"$SUPABASE_ANON_KEY\" > .env && ./.flutter/bin/flutter build web --release --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY",
   "outputDirectory": "build/web",
-  "cleanUrls": true,
   "headers": [
     {
       "source": "/index.html",
