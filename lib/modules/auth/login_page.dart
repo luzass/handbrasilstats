@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../repositories/profile_repository.dart';
@@ -21,6 +22,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordFocusNode = FocusNode();
   final _profileRepository = ProfileRepository();
 
   bool _isLoading = false;
@@ -54,6 +56,8 @@ class _LoginPageState extends State<LoginPage> {
         });
         return;
       }
+
+      TextInput.finishAutofillContext(shouldSave: true);
 
       Widget nextPage;
 
@@ -104,6 +108,7 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -120,9 +125,10 @@ class _LoginPageState extends State<LoginPage> {
               child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  child: AutofillGroup(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       Container(
                         width: 56,
                         height: 56,
@@ -162,15 +168,33 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 28),
                       TextField(
                         controller: _emailController,
+                        autofillHints: const [
+                          AutofillHints.username,
+                          AutofillHints.email,
+                        ],
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        enabled: !_isLoading,
                         decoration: const InputDecoration(
                           labelText: 'E-mail',
                           prefixIcon: Icon(Icons.mail_outline),
                         ),
+                        onSubmitted: (_) {
+                          if (_passwordController.text.trim().isNotEmpty) {
+                            _login();
+                          } else {
+                            _passwordFocusNode.requestFocus();
+                          }
+                        },
                       ),
                       const SizedBox(height: 14),
                       TextField(
                         controller: _passwordController,
+                        focusNode: _passwordFocusNode,
                         obscureText: _obscurePassword,
+                        autofillHints: const [AutofillHints.password],
+                        textInputAction: TextInputAction.done,
+                        enabled: !_isLoading,
                         decoration: InputDecoration(
                           labelText: 'Senha',
                           prefixIcon: const Icon(Icons.lock_outline),
@@ -187,6 +211,11 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                         ),
+                        onSubmitted: (_) {
+                          if (!_isLoading) {
+                            _login();
+                          }
+                        },
                       ),
                       const SizedBox(height: 18),
                       if (_errorMessage != null) ...[
@@ -240,21 +269,24 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      Center(
-                        child: TextButton(
-                          onPressed: _isLoading
-                              ? null
-                              : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const RegisterPage(profileType: 'visitor'),
-                                    ),
-                                  );
-                                },
-                          child: const Text('Criar nova conta'),
+                        Center(
+                          child: TextButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const RegisterPage(
+                                          profileType: 'visitor',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            child: const Text('Criar nova conta'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
