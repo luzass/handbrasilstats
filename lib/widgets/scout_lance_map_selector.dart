@@ -85,10 +85,10 @@ class ScoutLanceMapSelector extends StatelessWidget {
   }
 
   Widget _goalGrid(double width, double height) {
-    final left = width * 0.12;
-    final top = height * 0.06;
-    final goalWidth = width * 0.76;
-    final goalHeight = height * 0.28;
+    final left = width * 0.14;
+    final top = height * 0.05;
+    final goalWidth = width * 0.72;
+    final goalHeight = height * 0.27;
 
     return Positioned(
       left: left,
@@ -324,33 +324,42 @@ class _GoalCell extends StatelessWidget {
   }
 }
 
+/// Draws the handball half-court: goal net, 6m goal area (solid half-ellipse),
+/// 9m free-throw line (dashed, concentric half-ellipse) and the sidelines /
+/// zone dividers, all connected to one another with no floating segments.
 class _ScoutLanceMapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    final width = size.width;
+    final height = size.height;
+
     final linePaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.90)
-      ..strokeWidth = size.width * 0.006
-      ..style = PaintingStyle.stroke;
+      ..strokeWidth = width * 0.006
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
     final dashedPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.78)
-      ..strokeWidth = size.width * 0.005
-      ..style = PaintingStyle.stroke;
+      ..strokeWidth = width * 0.005
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
     final netPaint = Paint()
       ..color = Colors.white.withValues(alpha: 0.10)
-      ..strokeWidth = size.width * 0.003
+      ..strokeWidth = width * 0.003
       ..style = PaintingStyle.stroke;
 
     final goalWhitePaint = Paint()
       ..color = Colors.white
-      ..strokeWidth = size.width * 0.024
+      ..strokeWidth = width * 0.024
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.butt;
 
     final goalRedPaint = Paint()
       ..color = const Color(0xFFFF584D)
-      ..strokeWidth = size.width * 0.024
+      ..strokeWidth = width * 0.024
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.butt;
 
@@ -358,14 +367,15 @@ class _ScoutLanceMapPainter extends CustomPainter {
       ..color = const Color(0xFF1956B6).withValues(alpha: 0.90)
       ..style = PaintingStyle.fill;
 
-    final centerX = size.width / 2;
-    final goalLeft = size.width * 0.12;
-    final goalRight = size.width * 0.88;
-    final goalTop = size.height * 0.06;
-    final goalBottom = size.height * 0.34;
-    final courtLineY = size.height * 0.38;
-    final goalCenterY = goalTop;
+    // ----- key coordinates -----
+    final centerX = width / 2;
+    final goalLeft = width * 0.14;
+    final goalRight = width * 0.86;
+    final goalTop = height * 0.05;
+    final goalBottom = height * 0.32; // goal line: where the 6m area starts
+    final goalLineY = goalBottom;
 
+    // ----- goal net grid -----
     for (var i = 1; i < 11; i++) {
       final x = goalLeft + ((goalRight - goalLeft) * i / 11);
       canvas.drawLine(Offset(x, goalTop), Offset(x, goalBottom), netPaint);
@@ -408,69 +418,93 @@ class _ScoutLanceMapPainter extends CustomPainter {
       segments: 8,
     );
 
-    canvas.drawLine(
-      Offset(size.width * 0.02, courtLineY),
-      Offset(size.width * 0.98, courtLineY),
-      linePaint,
+    // ----- 6m goal area: a real half-ellipse ("D" shape) -----
+    // Flat edge = the goal line itself (goalLeft -> goalRight), curved edge
+    // bulges toward the court. Using an actual elliptical arc (not a Bezier
+    // approximation) keeps it perfectly smooth and symmetric.
+    final areaRx = (goalRight - goalLeft) / 2;
+    final areaRy = height * 0.30;
+    final areaRect = Rect.fromCenter(
+      center: Offset(centerX, goalLineY),
+      width: areaRx * 2,
+      height: areaRy * 2,
     );
 
+    // angle 0 = east, increases clockwise (y grows downward).
+    // pi = west (goalLeft) -> sweep -pi clockwise through south (bottom) -> 0 = east (goalRight)
     final areaPath = Path()
-      ..moveTo(size.width * 0.12, courtLineY)
-      ..lineTo(size.width * 0.88, courtLineY)
-      ..quadraticBezierTo(
-        centerX,
-        size.height * 0.64,
-        size.width * 0.12,
-        courtLineY,
-      )
+      ..moveTo(goalLeft, goalLineY)
+      ..arcTo(areaRect, math.pi, -math.pi, false)
       ..close();
+
     canvas.drawPath(areaPath, areaFillPaint);
     canvas.drawPath(areaPath, linePaint);
 
+    // ----- 9m free-throw line: concentric dashed half-ellipse -----
+    final nineRx = areaRx + width * 0.14;
+    final nineRy = areaRy + height * 0.14;
+    final nineRect = Rect.fromCenter(
+      center: Offset(centerX, goalLineY),
+      width: nineRx * 2,
+      height: nineRy * 2,
+    );
+
+    _drawDashedArc(
+      canvas: canvas,
+      rect: nineRect,
+      startAngle: math.pi,
+      totalSweep: -math.pi,
+      dashAngle: 0.13,
+      gapAngle: 0.09,
+      paint: dashedPaint,
+    );
+
+    // ----- sidelines: continue straight from the 6m area's flat-top corners -----
+    final bottomY = height * 0.99;
+    canvas.drawLine(Offset(goalLeft, goalLineY), Offset(width * 0.015, bottomY), linePaint);
+    canvas.drawLine(Offset(goalRight, goalLineY), Offset(width * 0.985, bottomY), linePaint);
+
+    // ----- inner dividers: split the middle zones (2/9 | 3/8 | 4/7) -----
+    final dividerTopY = goalLineY + (areaRy * 1.35);
     canvas.drawLine(
-      Offset(size.width * 0.02, courtLineY),
-      Offset(size.width * 0.22, size.height * 0.54),
+      Offset(centerX - width * 0.09, dividerTopY),
+      Offset(width * 0.34, bottomY),
       linePaint,
     );
     canvas.drawLine(
-      Offset(size.width * 0.98, courtLineY),
-      Offset(size.width * 0.78, size.height * 0.54),
-      linePaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.33, size.height * 0.96),
-      Offset(size.width * 0.42, size.height * 0.61),
-      linePaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.67, size.height * 0.96),
-      Offset(size.width * 0.58, size.height * 0.61),
+      Offset(centerX + width * 0.09, dividerTopY),
+      Offset(width * 0.66, bottomY),
       linePaint,
     );
 
-    const dashAngle = 0.14;
-    const gapAngle = 0.10;
-    final freeThrowRadius = size.width * 0.58;
-    var angle = math.pi * 0.20;
-    while (angle < math.pi * 0.80) {
-      canvas.drawArc(
-        Rect.fromCircle(
-          center: Offset(centerX, goalCenterY),
-          radius: freeThrowRadius,
-        ),
-        angle,
-        dashAngle,
-        false,
-        dashedPaint,
-      );
-      angle += dashAngle + gapAngle;
+    // small centre tick on the 6m line, just above its apex
+    final apexY = goalLineY + areaRy;
+    canvas.drawLine(
+      Offset(centerX - width * 0.035, apexY - height * 0.02),
+      Offset(centerX + width * 0.035, apexY - height * 0.02),
+      linePaint,
+    );
+  }
+
+  void _drawDashedArc({
+    required Canvas canvas,
+    required Rect rect,
+    required double startAngle,
+    required double totalSweep,
+    required double dashAngle,
+    required double gapAngle,
+    required Paint paint,
+  }) {
+    final direction = totalSweep.isNegative ? -1.0 : 1.0;
+    final totalAbs = totalSweep.abs();
+    var covered = 0.0;
+
+    while (covered < totalAbs) {
+      final remaining = totalAbs - covered;
+      final sweep = (dashAngle < remaining ? dashAngle : remaining) * direction;
+      canvas.drawArc(rect, startAngle + (covered * direction), sweep, false, paint);
+      covered += dashAngle + gapAngle;
     }
-
-    canvas.drawLine(
-      Offset(centerX - size.width * 0.035, size.height * 0.51),
-      Offset(centerX + size.width * 0.035, size.height * 0.51),
-      linePaint,
-    );
   }
 
   @override
