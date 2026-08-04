@@ -10,20 +10,45 @@ import 'modules/splash/splash_page.dart';
 class App extends StatelessWidget {
   const App({super.key});
 
+  Route<dynamic> _buildRoute(RouteSettings settings) {
+    final uri = Uri.parse(settings.name ?? '/');
+    final path = uri.path.endsWith('/') && uri.path.length > 1
+        ? uri.path.substring(0, uri.path.length - 1)
+        : uri.path;
+
+    Widget page;
+    switch (path) {
+      case '/login':
+        page = const LoginPage();
+        break;
+      case '/register':
+        page = const RegisterPage(profileType: 'visitor');
+        break;
+      case '/forgot-password':
+        page = const ForgotPasswordPage();
+        break;
+      case '/reset-password':
+        page = const ResetPasswordPage();
+        break;
+      case '/':
+      default:
+        page = const SplashPage();
+        break;
+    }
+
+    return MaterialPageRoute(
+      builder: (_) => page,
+      settings: settings,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'HandBrasil Stats',
       theme: AppTheme.light,
-      initialRoute: '/',
-      routes: {
-        '/': (_) => const SplashPage(),
-        '/login': (_) => const LoginPage(),
-        '/register': (_) => const RegisterPage(profileType: 'visitor'),
-        '/forgot-password': (_) => const ForgotPasswordPage(),
-        '/reset-password': (_) => const ResetPasswordPage(),
-      },
+      onGenerateRoute: _buildRoute,
     );
   }
 }

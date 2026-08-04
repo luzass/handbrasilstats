@@ -23,6 +23,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   bool _hasRecoverySession = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isPreparingRecovery = true;
   String? _errorMessage;
   String? _successMessage;
 
@@ -40,7 +41,63 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           });
         }
       },
+      onError: (Object error) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = 'Erro ao validar link de recuperacao: $error';
+        });
+      },
     );
+    _prepareRecoverySession();
+  }
+
+  Future<void> _prepareRecoverySession() async {
+    final supabase = Supabase.instance.client;
+    final code = Uri.base.queryParameters['code'];
+
+    if (supabase.auth.currentSession != null) {
+      if (!mounted) return;
+      setState(() {
+        _hasRecoverySession = true;
+        _isPreparingRecovery = false;
+      });
+      return;
+    }
+
+    if (code == null || code.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _hasRecoverySession = false;
+        _isPreparingRecovery = false;
+      });
+      return;
+    }
+
+    try {
+      await supabase.auth.exchangeCodeForSession(code);
+
+      if (!mounted) return;
+      setState(() {
+        _hasRecoverySession = true;
+        _isPreparingRecovery = false;
+        _errorMessage = null;
+      });
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _hasRecoverySession = false;
+        _isPreparingRecovery = false;
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _hasRecoverySession = false;
+        _isPreparingRecovery = false;
+        _errorMessage =
+            'Nao conseguimos validar esse link. Solicite uma nova recuperacao de senha.';
+      });
+    }
   }
 
   Future<void> _updatePassword() async {
@@ -89,9 +146,16 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       if (!mounted) return;
       setState(() {
         _successMessage = 'Senha atualizada. Agora voce ja pode entrar.';
+        _hasRecoverySession = false;
         _passwordController.clear();
         _confirmPasswordController.clear();
       });
+
+      await Future.delayed(const Duration(milliseconds: 900));
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
     } on AuthException catch (e) {
       setState(() {
         _errorMessage = e.message;
@@ -162,7 +226,9 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _hasRecoverySession
+                        _isPreparingRecovery
+                            ? 'Validando seu link de recuperacao...'
+                            : _hasRecoverySession
                             ? 'Digite sua nova senha para concluir a recuperacao.'
                             : 'Abra esta tela pelo link de recuperacao enviado para seu e-mail.',
                         style: TextStyle(
@@ -172,10 +238,16 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         ),
                       ),
                       const SizedBox(height: 28),
+                      if (_isPreparingRecovery) ...[
+                        const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        enabled: _hasRecoverySession,
+                        enabled: _hasRecoverySession && !_isPreparingRecovery,
                         decoration: InputDecoration(
                           labelText: 'Nova senha',
                           prefixIcon: const Icon(Icons.lock_outline),
@@ -197,7 +269,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                       TextField(
                         controller: _confirmPasswordController,
                         obscureText: _obscureConfirmPassword,
-                        enabled: _hasRecoverySession,
+                        enabled: _hasRecoverySession && !_isPreparingRecovery,
                         decoration: InputDecoration(
                           labelText: 'Confirmar nova senha',
                           prefixIcon: const Icon(Icons.verified_user_outlined),
@@ -235,6 +307,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _isLoading || !_hasRecoverySession
+                                  || _isPreparingRecovery
                               ? null
                               : _updatePassword,
                           child: _isLoading
