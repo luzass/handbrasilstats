@@ -3,7 +3,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class ScoutLanceMapSelector extends StatelessWidget {
-  static const double _boardAspectRatio = 0.78;
+  static const double _boardAspectRatio = 1.0;
+
+  // ----- shared court geometry -----
+  // Single source of truth for where the goal line, 6m area and 9m line
+  // sit (as a fraction of the board height). Both the tap-zone anchors
+  // below and the CustomPainter read these, so the clickable zones always
+  // line up with what's actually drawn, even if these numbers change.
+  static const double goalLineY = 0.32;
+  static const double sixMeterDepth = 0.16; // 6m area bulge, below goalLineY
+  static const double nineMeterExtra = 0.13; // extra depth of the 9m line, below the 6m apex
+  static const double sixMeterApexY = goalLineY + sixMeterDepth; // ~0.48
+  static const double nineMeterApexY = sixMeterApexY + nineMeterExtra; // ~0.61
+  static const double bottomY = 0.99;
 
   final int? selectedZoneId;
   final int? selectedGoalZoneId;
@@ -22,17 +34,21 @@ class ScoutLanceMapSelector extends StatelessWidget {
     this.enabled = true,
   });
 
+  // Row 1: right at the 6m line -> wing shots taken close to the goal.
+  // Row 2: right at the 9m line (still inside the 6-9m band) -> wing +
+  //        center shots from just outside the 6m area.
+  // Row 3: beyond the 9m line -> long-range / backcourt shots.
   static const Map<int, Offset> _shotZoneAnchors = {
-    1: Offset(0.13, 0.48),
-    5: Offset(0.87, 0.48),
-    10: Offset(0.17, 0.60),
-    6: Offset(0.83, 0.60),
-    2: Offset(0.33, 0.71),
-    3: Offset(0.50, 0.74),
-    4: Offset(0.67, 0.71),
-    9: Offset(0.20, 0.90),
-    8: Offset(0.50, 0.91),
-    7: Offset(0.80, 0.90),
+    1: Offset(0.13, sixMeterApexY + 0.02),
+    5: Offset(0.87, sixMeterApexY + 0.02),
+    10: Offset(0.17, nineMeterApexY - 0.02),
+    6: Offset(0.83, nineMeterApexY - 0.02),
+    2: Offset(0.33, nineMeterApexY - 0.02),
+    3: Offset(0.50, nineMeterApexY - 0.02),
+    4: Offset(0.67, nineMeterApexY - 0.02),
+    9: Offset(0.20, nineMeterApexY + 0.10),
+    8: Offset(0.50, nineMeterApexY + 0.14),
+    7: Offset(0.80, nineMeterApexY + 0.10),
   };
 
   static const Offset _sevenMeterAnchor = Offset(0.50, 0.55);
@@ -367,21 +383,20 @@ class _ScoutLanceMapPainter extends CustomPainter {
       ..color = const Color(0xFF1956B6).withValues(alpha: 0.90)
       ..style = PaintingStyle.fill;
 
-    // ----- key coordinates -----
+    // ----- key coordinates (shared with ScoutLanceMapSelector's tap zones) -----
     final centerX = width / 2;
     final goalLeft = width * 0.14;
     final goalRight = width * 0.86;
     final goalTop = height * 0.05;
-    final goalBottom = height * 0.32; // goal line: where the 6m area starts
-    final goalLineY = goalBottom;
+    final goalLineY = height * ScoutLanceMapSelector.goalLineY; // where the 6m area starts
 
     // ----- goal net grid -----
     for (var i = 1; i < 11; i++) {
       final x = goalLeft + ((goalRight - goalLeft) * i / 11);
-      canvas.drawLine(Offset(x, goalTop), Offset(x, goalBottom), netPaint);
+      canvas.drawLine(Offset(x, goalTop), Offset(x, goalLineY), netPaint);
     }
     for (var i = 1; i < 5; i++) {
-      final y = goalTop + ((goalBottom - goalTop) * i / 5);
+      final y = goalTop + ((goalLineY - goalTop) * i / 5);
       canvas.drawLine(Offset(goalLeft, y), Offset(goalRight, y), netPaint);
     }
 
@@ -409,12 +424,12 @@ class _ScoutLanceMapPainter extends CustomPainter {
     );
     drawStripedLine(
       start: Offset(goalLeft, goalTop),
-      end: Offset(goalLeft, goalBottom),
+      end: Offset(goalLeft, goalLineY),
       segments: 8,
     );
     drawStripedLine(
       start: Offset(goalRight, goalTop),
-      end: Offset(goalRight, goalBottom),
+      end: Offset(goalRight, goalLineY),
       segments: 8,
     );
 
@@ -423,7 +438,7 @@ class _ScoutLanceMapPainter extends CustomPainter {
     // bulges toward the court. Using an actual elliptical arc (not a Bezier
     // approximation) keeps it perfectly smooth and symmetric.
     final areaRx = (goalRight - goalLeft) / 2;
-    final areaRy = height * 0.16;
+    final areaRy = height * ScoutLanceMapSelector.sixMeterDepth;
     final areaRect = Rect.fromCenter(
       center: Offset(centerX, goalLineY),
       width: areaRx * 2,
@@ -442,7 +457,7 @@ class _ScoutLanceMapPainter extends CustomPainter {
 
     // ----- 9m free-throw line: concentric dashed half-ellipse -----
     final nineRx = areaRx + width * 0.14;
-    final nineRy = areaRy + height * 0.13;
+    final nineRy = areaRy + height * ScoutLanceMapSelector.nineMeterExtra;
     final nineRect = Rect.fromCenter(
       center: Offset(centerX, goalLineY),
       width: nineRx * 2,
@@ -460,7 +475,7 @@ class _ScoutLanceMapPainter extends CustomPainter {
     );
 
     // ----- sidelines: continue straight from the 6m area's flat-top corners -----
-    final bottomY = height * 0.99;
+    final bottomY = height * ScoutLanceMapSelector.bottomY;
     canvas.drawLine(Offset(goalLeft, goalLineY), Offset(width * 0.015, bottomY), linePaint);
     canvas.drawLine(Offset(goalRight, goalLineY), Offset(width * 0.985, bottomY), linePaint);
 
