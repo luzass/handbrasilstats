@@ -423,7 +423,7 @@ class _ScoutLanceMapPainter extends CustomPainter {
     // bulges toward the court. Using an actual elliptical arc (not a Bezier
     // approximation) keeps it perfectly smooth and symmetric.
     final areaRx = (goalRight - goalLeft) / 2;
-    final areaRy = height * 0.30;
+    final areaRy = height * 0.16;
     final areaRect = Rect.fromCenter(
       center: Offset(centerX, goalLineY),
       width: areaRx * 2,
@@ -442,7 +442,7 @@ class _ScoutLanceMapPainter extends CustomPainter {
 
     // ----- 9m free-throw line: concentric dashed half-ellipse -----
     final nineRx = areaRx + width * 0.14;
-    final nineRy = areaRy + height * 0.14;
+    final nineRy = areaRy + height * 0.13;
     final nineRect = Rect.fromCenter(
       center: Offset(centerX, goalLineY),
       width: nineRx * 2,
@@ -474,14 +474,6 @@ class _ScoutLanceMapPainter extends CustomPainter {
     canvas.drawLine(
       Offset(centerX + width * 0.09, dividerTopY),
       Offset(width * 0.66, bottomY),
-      linePaint,
-    );
-
-    // small centre tick on the 6m line, just above its apex
-    final apexY = goalLineY + areaRy;
-    canvas.drawLine(
-      Offset(centerX - width * 0.035, apexY - height * 0.02),
-      Offset(centerX + width * 0.035, apexY - height * 0.02),
       linePaint,
     );
   }
