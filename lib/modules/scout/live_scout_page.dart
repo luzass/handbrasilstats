@@ -1615,9 +1615,23 @@ Widget _buildMatchHeader({
       width: double.infinity,
       padding: EdgeInsets.all(compact ? 7 : 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF07152D),
+            Color(0xFF0C1F3E),
+          ],
+        ),
         borderRadius: BorderRadius.circular(compact ? 12 : 16),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: const Color(0xFF173A66)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF07152D).withValues(alpha: 0.20),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1627,6 +1641,7 @@ Widget _buildMatchHeader({
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: compact ? 12 : 13,
+              color: Colors.white.withValues(alpha: 0.92),
             ),
           ),
           SizedBox(height: compact ? 6 : 8),
@@ -1707,7 +1722,13 @@ Widget _buildMatchHeader({
                           ),
                           if (!goalZoneEnabled) ...[
                             const SizedBox(height: 8),
-                            const Text('Nao se aplica para este resultado.'),
+                            Text(
+                              'Nao se aplica para este resultado.',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.70),
+                                fontSize: compact ? 11 : 12,
+                              ),
+                            ),
                           ],
                         ],
                       ),

@@ -27,14 +27,16 @@ class GoalZoneSelector extends StatelessWidget {
       onTap: enabled ? () => onSelected(goalZoneId) : null,
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE53935).withValues(alpha: 0.18) : Colors.transparent,
-          border: Border.all(color: Colors.black.withValues(alpha: 0.22), width: 0.8),
+          color: isSelected
+              ? const Color(0xFFFFD33D).withValues(alpha: 0.82)
+              : Colors.white.withValues(alpha: 0.03),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.72), width: 0.8),
         ),
         alignment: Alignment.center,
         child: Text(
           'G${goalZoneId.toString().padLeft(2, '0')}',
           style: TextStyle(
-            color: Colors.black87,
+            color: isSelected ? const Color(0xFF07152D) : Colors.white,
             fontSize: fontSize,
             fontWeight: isSelected ? FontWeight.w900 : FontWeight.w800,
           ),
@@ -50,41 +52,56 @@ class GoalZoneSelector extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final fontSize = (constraints.maxWidth * 0.035).clamp(10.0, 14.0).toDouble();
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _GoalFramePainter(),
-                ),
+          return Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF07152D),
+                  Color(0xFF0A1B38),
+                  Color(0xFF071124),
+                ],
               ),
-              Positioned.fill(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    constraints.maxWidth * 0.07,
-                    constraints.maxHeight * 0.07,
-                    constraints.maxWidth * 0.07,
-                    constraints.maxHeight * 0.08,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFF173A66)),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _GoalFramePainter(),
                   ),
-                  child: Column(
-                    children: _rows
-                        .map(
-                          (row) => Expanded(
-                            child: Row(
-                              children: row
-                                  .map(
-                                    (goalZoneId) => Expanded(
-                                      child: _cell(goalZoneId, fontSize),
-                                    ),
-                                  )
-                                  .toList(),
+                ),
+                Positioned.fill(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      constraints.maxWidth * 0.07,
+                      constraints.maxHeight * 0.07,
+                      constraints.maxWidth * 0.07,
+                      constraints.maxHeight * 0.08,
+                    ),
+                    child: Column(
+                      children: _rows
+                          .map(
+                            (row) => Expanded(
+                              child: Row(
+                                children: row
+                                    .map(
+                                      (goalZoneId) => Expanded(
+                                        child: _cell(goalZoneId, fontSize),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
                             ),
-                          ),
-                        )
-                        .toList(),
+                          )
+                          .toList(),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -104,16 +121,21 @@ class _GoalFramePainter extends CustomPainter {
     final bottom = size.height - bottomInset;
 
     final whitePaint = Paint()
-      ..color = const Color(0xFFD6D9DE)
+      ..color = Colors.white
       ..strokeWidth = size.width * 0.024
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.butt;
 
     final redPaint = Paint()
-      ..color = const Color(0xFFE53935)
+      ..color = const Color(0xFFFF584D)
       ..strokeWidth = size.width * 0.024
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.butt;
+
+    final netPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.09)
+      ..strokeWidth = size.width * 0.003
+      ..style = PaintingStyle.stroke;
 
     void drawStripedLine({
       required Offset start,
@@ -147,6 +169,15 @@ class _GoalFramePainter extends CustomPainter {
       end: Offset(right, bottom),
       segments: 8,
     );
+
+    for (var i = 1; i < 10; i++) {
+      final x = left + ((right - left) * i / 10);
+      canvas.drawLine(Offset(x, top), Offset(x, bottom), netPaint);
+    }
+    for (var i = 1; i < 5; i++) {
+      final y = top + ((bottom - top) * i / 5);
+      canvas.drawLine(Offset(left, y), Offset(right, y), netPaint);
+    }
   }
 
   @override
