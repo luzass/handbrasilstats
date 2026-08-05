@@ -34,22 +34,6 @@ class ScoutLanceMapSelector extends StatelessWidget {
     this.enabled = true,
   });
 
-  // Click/highlight sectors for the shot map. They stay intentionally
-  // rectangular, mirroring the goal grid behavior: tapping a sector highlights
-  // the whole area instead of a small marker floating over the drawing.
-  static const Map<int, Rect> _shotZoneRects = {
-    1: Rect.fromLTRB(0.02, goalLineY, 0.24, 0.53),
-    5: Rect.fromLTRB(0.76, goalLineY, 0.98, 0.53),
-    10: Rect.fromLTRB(0.02, 0.53, 0.24, 0.61),
-    6: Rect.fromLTRB(0.76, 0.53, 0.98, 0.61),
-    2: Rect.fromLTRB(0.24, 0.54, 0.40, bottomY),
-    3: Rect.fromLTRB(0.40, 0.54, 0.60, bottomY),
-    4: Rect.fromLTRB(0.60, 0.54, 0.76, bottomY),
-    9: Rect.fromLTRB(0.02, 0.61, 0.32, bottomY),
-    8: Rect.fromLTRB(0.32, 0.61, 0.68, bottomY),
-    7: Rect.fromLTRB(0.68, 0.61, 0.98, bottomY),
-  };
-
   static const Offset _sevenMeterAnchor = Offset(0.50, 0.61);
 
   static const List<List<int>> _goalRows = [
@@ -57,32 +41,6 @@ class ScoutLanceMapSelector extends StatelessWidget {
     [2, 5, 8],
     [3, 6, 9],
   ];
-
-  Widget _shotMarker(
-    int zoneId,
-    Rect rect,
-    double width,
-    double height,
-  ) {
-    final isSelected = selectedZoneId == zoneId;
-    final zoneRect = Rect.fromLTRB(
-      width * rect.left,
-      height * rect.top,
-      width * rect.right,
-      height * rect.bottom,
-    );
-
-    return Positioned(
-      left: zoneRect.left,
-      top: zoneRect.top,
-      child: _HitRegion(
-        width: zoneRect.width,
-        height: zoneRect.height,
-        isSelected: isSelected,
-        onTap: enabled ? () => onZoneSelected(zoneId) : null,
-      ),
-    );
-  }
 
   Widget _sevenMeterMarker(double width, double height) {
     final isSelected = selectedZoneId == 11;
@@ -184,9 +142,14 @@ class ScoutLanceMapSelector extends StatelessWidget {
                           painter: _ScoutLanceMapPainter(),
                         ),
                       ),
+                      Positioned.fill(
+                        child: _ShotZoneLayer(
+                          selectedZoneId: selectedZoneId,
+                          enabled: enabled,
+                          onZoneSelected: onZoneSelected,
+                        ),
+                      ),
                       _goalGrid(width, height),
-                      for (final entry in _shotZoneRects.entries)
-                        _shotMarker(entry.key, entry.value, width, height),
                       _sevenMeterMarker(width, height),
                     ],
                   ),
@@ -200,55 +163,177 @@ class ScoutLanceMapSelector extends StatelessWidget {
   }
 }
 
-class _HitRegion extends StatelessWidget {
-  final double width;
-  final double height;
-  final bool isSelected;
-  final VoidCallback? onTap;
+class _ShotZoneLayer extends StatelessWidget {
+  final int? selectedZoneId;
+  final bool enabled;
+  final ValueChanged<int> onZoneSelected;
 
-  const _HitRegion({
-    required this.width,
-    required this.height,
-    required this.isSelected,
-    required this.onTap,
+  const _ShotZoneLayer({
+    required this.selectedZoneId,
+    required this.enabled,
+    required this.onZoneSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(4),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          width: width,
-          height: height,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFFFFD33D).withValues(alpha: 0.26)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-            border: isSelected
-                ? Border.all(
-                    color: const Color(0xFFFFE76A),
-                    width: 2.2,
-                  )
-                : null,
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFFFFD33D).withValues(alpha: 0.38),
-                      blurRadius: 16,
-                      spreadRadius: 2,
-                    ),
-                  ]
-                : null,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTapUp: enabled
+              ? (details) {
+                  final zoneId = _ShotZoneGeometry.hitTest(
+                    details.localPosition,
+                    size,
+                  );
+                  if (zoneId != null) {
+                    onZoneSelected(zoneId);
+                  }
+                }
+              : null,
+          child: CustomPaint(
+            painter: _ShotZoneHighlightPainter(selectedZoneId),
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+}
+
+class _ShotZoneHighlightPainter extends CustomPainter {
+  final int? selectedZoneId;
+
+  const _ShotZoneHighlightPainter(this.selectedZoneId);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (selectedZoneId == null || selectedZoneId == 11) {
+      return;
+    }
+
+    final path = _ShotZoneGeometry.pathFor(selectedZoneId!, size);
+    if (path == null) {
+      return;
+    }
+
+    final fillPaint = Paint()
+      ..color = const Color(0xFFFFD33D).withValues(alpha: 0.46)
+      ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = const Color(0xFFFFE76A)
+      ..strokeWidth = size.width * 0.006
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(path, fillPaint);
+    canvas.drawPath(path, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ShotZoneHighlightPainter oldDelegate) {
+    return oldDelegate.selectedZoneId != selectedZoneId;
+  }
+}
+
+class _ShotZoneGeometry {
+  static const List<int> _zoneOrder = [1, 5, 10, 6, 2, 3, 4, 9, 8, 7];
+
+  static int? hitTest(Offset position, Size size) {
+    for (final zoneId in _zoneOrder) {
+      final path = pathFor(zoneId, size);
+      if (path != null && path.contains(position)) {
+        return zoneId;
+      }
+    }
+    return null;
+  }
+
+  static Path? pathFor(int zoneId, Size size) {
+    final width = size.width;
+    final height = size.height;
+
+    switch (zoneId) {
+      case 1:
+        return Path()
+          ..moveTo(0, height * 0.36)
+          ..lineTo(width * 0.14, height * 0.36)
+          ..quadraticBezierTo(width * 0.145, height * 0.44, width * 0.18, height * 0.465)
+          ..lineTo(width * 0.10, height * 0.53)
+          ..lineTo(0, height * 0.45)
+          ..close();
+      case 5:
+        return Path()
+          ..moveTo(width, height * 0.36)
+          ..lineTo(width * 0.86, height * 0.36)
+          ..quadraticBezierTo(width * 0.855, height * 0.44, width * 0.82, height * 0.465)
+          ..lineTo(width * 0.90, height * 0.53)
+          ..lineTo(width, height * 0.45)
+          ..close();
+      case 10:
+        return Path()
+          ..moveTo(0, height * 0.45)
+          ..lineTo(width * 0.10, height * 0.53)
+          ..lineTo(width * 0.18, height * 0.58)
+          ..lineTo(width * 0.03, height * 0.61)
+          ..lineTo(0, height * 0.54)
+          ..close();
+      case 6:
+        return Path()
+          ..moveTo(width, height * 0.45)
+          ..lineTo(width * 0.90, height * 0.53)
+          ..lineTo(width * 0.82, height * 0.58)
+          ..lineTo(width * 0.97, height * 0.61)
+          ..lineTo(width, height * 0.54)
+          ..close();
+      case 2:
+        return Path()
+          ..moveTo(width * 0.18, height * 0.465)
+          ..quadraticBezierTo(width * 0.27, height * 0.505, width * 0.39, height * 0.515)
+          ..lineTo(width * 0.34, height * 0.62)
+          ..lineTo(width * 0.18, height * 0.58)
+          ..lineTo(width * 0.10, height * 0.53)
+          ..close();
+      case 3:
+        return Path()
+          ..moveTo(width * 0.39, height * 0.515)
+          ..quadraticBezierTo(width * 0.50, height * 0.535, width * 0.61, height * 0.515)
+          ..lineTo(width * 0.66, height * 0.62)
+          ..quadraticBezierTo(width * 0.50, height * 0.65, width * 0.34, height * 0.62)
+          ..close();
+      case 4:
+        return Path()
+          ..moveTo(width * 0.61, height * 0.515)
+          ..quadraticBezierTo(width * 0.73, height * 0.505, width * 0.82, height * 0.465)
+          ..lineTo(width * 0.90, height * 0.53)
+          ..lineTo(width * 0.82, height * 0.58)
+          ..lineTo(width * 0.66, height * 0.62)
+          ..close();
+      case 9:
+        return Path()
+          ..moveTo(width * 0.03, height * 0.61)
+          ..lineTo(width * 0.34, height * 0.62)
+          ..lineTo(width * 0.28, height * ScoutLanceMapSelector.bottomY)
+          ..lineTo(width * 0.01, height * ScoutLanceMapSelector.bottomY)
+          ..close();
+      case 8:
+        return Path()
+          ..moveTo(width * 0.34, height * 0.62)
+          ..quadraticBezierTo(width * 0.50, height * 0.65, width * 0.66, height * 0.62)
+          ..lineTo(width * 0.72, height * ScoutLanceMapSelector.bottomY)
+          ..lineTo(width * 0.28, height * ScoutLanceMapSelector.bottomY)
+          ..close();
+      case 7:
+        return Path()
+          ..moveTo(width * 0.66, height * 0.62)
+          ..lineTo(width * 0.97, height * 0.61)
+          ..lineTo(width * 0.99, height * ScoutLanceMapSelector.bottomY)
+          ..lineTo(width * 0.72, height * ScoutLanceMapSelector.bottomY)
+          ..close();
+      default:
+        return null;
+    }
   }
 }
 
