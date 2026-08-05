@@ -55,23 +55,27 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  Future<void> _showSuccessDialog() async {
+  Future<void> _showSuccessDialog({required bool needsEmailConfirmation}) async {
     String message;
 
-    switch (_effectiveProfileType) {
-      case 'team':
-        message =
-            'Cadastro finalizado. Confirme seu e-mail. Depois do primeiro acesso, vamos seguir para o cadastro completo do time.';
-        break;
-      case 'player':
-        message =
-            'Cadastro finalizado. Confirme seu e-mail. Depois do primeiro acesso, vamos seguir para o cadastro completo do jogador.';
-        break;
-      case 'visitor':
-      default:
-        message =
-            'Cadastro finalizado. Confirme seu e-mail para ter acesso ao app.';
-        break;
+    if (needsEmailConfirmation) {
+      switch (_effectiveProfileType) {
+        case 'team':
+          message =
+              'Cadastro finalizado. Confirme seu e-mail. Depois do primeiro acesso, vamos seguir para o cadastro completo do time.';
+          break;
+        case 'player':
+          message =
+              'Cadastro finalizado. Confirme seu e-mail. Depois do primeiro acesso, vamos seguir para o cadastro completo do jogador.';
+          break;
+        case 'visitor':
+        default:
+          message =
+              'Cadastro finalizado. Confirme seu e-mail para ter acesso ao app.';
+          break;
+      }
+    } else {
+      message = 'Cadastro finalizado. Agora voce ja pode entrar no app.';
     }
 
     await showDialog<void>(
@@ -137,9 +141,18 @@ class _RegisterPageState extends State<RegisterPage> {
     });
 
     try {
-      await Supabase.instance.client.auth.signUp(
+      final emailRedirectTo = Uri.base
+          .replace(
+            path: '/login',
+            queryParameters: const {},
+            fragment: '',
+          )
+          .toString();
+
+      final response = await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
+        emailRedirectTo: emailRedirectTo,
         data: {
           'full_name': fullName,
           'phone': phone,
@@ -147,6 +160,10 @@ class _RegisterPageState extends State<RegisterPage> {
           'role': 'viewer',
         },
       );
+      final needsEmailConfirmation = response.session == null;
+      if (!needsEmailConfirmation) {
+        await Supabase.instance.client.auth.signOut();
+      }
 
       if (!mounted) return;
 
@@ -156,7 +173,9 @@ class _RegisterPageState extends State<RegisterPage> {
       _passwordController.clear();
       _confirmPasswordController.clear();
 
-      await _showSuccessDialog();
+      await _showSuccessDialog(
+        needsEmailConfirmation: needsEmailConfirmation,
+      );
     } on AuthException catch (e) {
       setState(() {
         _errorMessage = e.message;

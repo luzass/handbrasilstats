@@ -8,6 +8,8 @@ class ViewerRepository {
   static const _visibleCompetitionNames = [
     'Campeonato W.A Masculino',
     'Campeonato W.A Feminino',
+    'Campeonato W.A - Masculino',
+    'Campeonato W.A - Feminino',
   ];
 
   Future<List<CompetitionModel>> getFeaturedCompetitions() async {
