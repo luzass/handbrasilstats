@@ -34,21 +34,20 @@ class ScoutLanceMapSelector extends StatelessWidget {
     this.enabled = true,
   });
 
-  // Row 1: right at the 6m line -> wing shots taken close to the goal.
-  // Row 2: right at the 9m line (still inside the 6-9m band) -> wing +
-  //        center shots from just outside the 6m area.
-  // Row 3: beyond the 9m line -> long-range / backcourt shots.
-  static const Map<int, Offset> _shotZoneAnchors = {
-    1: Offset(0.13, sixMeterApexY + 0.02),
-    5: Offset(0.87, sixMeterApexY + 0.02),
-    10: Offset(0.17, nineMeterApexY - 0.02),
-    6: Offset(0.83, nineMeterApexY - 0.02),
-    2: Offset(0.33, nineMeterApexY - 0.02),
-    3: Offset(0.50, nineMeterApexY - 0.02),
-    4: Offset(0.67, nineMeterApexY - 0.02),
-    9: Offset(0.18, bottomY - 0.035),
-    8: Offset(0.50, bottomY - 0.03),
-    7: Offset(0.82, bottomY - 0.035),
+  // Click/highlight sectors for the shot map. They stay intentionally
+  // rectangular, mirroring the goal grid behavior: tapping a sector highlights
+  // the whole area instead of a small marker floating over the drawing.
+  static const Map<int, Rect> _shotZoneRects = {
+    1: Rect.fromLTRB(0.02, goalLineY, 0.24, 0.53),
+    5: Rect.fromLTRB(0.76, goalLineY, 0.98, 0.53),
+    10: Rect.fromLTRB(0.02, 0.53, 0.24, 0.61),
+    6: Rect.fromLTRB(0.76, 0.53, 0.98, 0.61),
+    2: Rect.fromLTRB(0.24, 0.54, 0.40, bottomY),
+    3: Rect.fromLTRB(0.40, 0.54, 0.60, bottomY),
+    4: Rect.fromLTRB(0.60, 0.54, 0.76, bottomY),
+    9: Rect.fromLTRB(0.02, 0.61, 0.32, bottomY),
+    8: Rect.fromLTRB(0.32, 0.61, 0.68, bottomY),
+    7: Rect.fromLTRB(0.68, 0.61, 0.98, bottomY),
   };
 
   static const Offset _sevenMeterAnchor = Offset(0.50, 0.61);
@@ -61,20 +60,24 @@ class ScoutLanceMapSelector extends StatelessWidget {
 
   Widget _shotMarker(
     int zoneId,
-    Offset anchor,
+    Rect rect,
     double width,
     double height,
   ) {
     final isSelected = selectedZoneId == zoneId;
-    final markerWidth = (width * 0.19).clamp(54.0, 90.0).toDouble();
-    final markerHeight = (height * 0.085).clamp(40.0, 64.0).toDouble();
+    final zoneRect = Rect.fromLTRB(
+      width * rect.left,
+      height * rect.top,
+      width * rect.right,
+      height * rect.bottom,
+    );
 
     return Positioned(
-      left: (width * anchor.dx) - (markerWidth / 2),
-      top: (height * anchor.dy) - (markerHeight / 2),
+      left: zoneRect.left,
+      top: zoneRect.top,
       child: _HitRegion(
-        width: markerWidth,
-        height: markerHeight,
+        width: zoneRect.width,
+        height: zoneRect.height,
         isSelected: isSelected,
         onTap: enabled ? () => onZoneSelected(zoneId) : null,
       ),
@@ -182,7 +185,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
                         ),
                       ),
                       _goalGrid(width, height),
-                      for (final entry in _shotZoneAnchors.entries)
+                      for (final entry in _shotZoneRects.entries)
                         _shotMarker(entry.key, entry.value, width, height),
                       _sevenMeterMarker(width, height),
                     ],
@@ -215,7 +218,7 @@ class _HitRegion extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(4),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
@@ -226,7 +229,7 @@ class _HitRegion extends StatelessWidget {
             color: isSelected
                 ? const Color(0xFFFFD33D).withValues(alpha: 0.26)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(4),
             border: isSelected
                 ? Border.all(
                     color: const Color(0xFFFFE76A),
