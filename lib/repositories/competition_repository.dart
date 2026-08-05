@@ -17,8 +17,14 @@ class CompetitionRepository {
         .toList();
   }
 
-  Future<void> createCompetition(CompetitionModel competition) async {
-    await _supabase.from('competitions').insert(competition.toInsertMap());
+  Future<CompetitionModel> createCompetition(CompetitionModel competition) async {
+    final response = await _supabase
+        .from('competitions')
+        .insert(competition.toInsertMap())
+        .select()
+        .single();
+
+    return CompetitionModel.fromMap(Map<String, dynamic>.from(response));
   }
 
   Future<void> updateCompetition(CompetitionModel competition) async {

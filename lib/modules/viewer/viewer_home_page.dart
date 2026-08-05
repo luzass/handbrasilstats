@@ -61,6 +61,46 @@ class _ViewerHomePageState extends State<ViewerHomePage> {
     );
   }
 
+  Widget _buildCompetitionImage(CompetitionModel competition) {
+    final imageUrl = competition.imageUrl;
+
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: Image.network(
+          imageUrl,
+          width: 82,
+          height: 82,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildDefaultCompetitionImage(),
+        ),
+      );
+    }
+
+    return _buildDefaultCompetitionImage();
+  }
+
+  Widget _buildDefaultCompetitionImage() {
+    return Container(
+      width: 82,
+      height: 82,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            AppThemeColors.info,
+            AppThemeColors.primary,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: const Icon(
+        Icons.emoji_events_outlined,
+        color: Colors.white,
+        size: 34,
+      ),
+    );
+  }
+
   Widget _buildCompetitionCard(CompetitionModel competition) {
     final location =
         '${competition.hostCity ?? ''}${competition.hostCity != null && competition.hostState != null ? ' - ' : ''}${competition.hostState ?? ''}'
@@ -75,24 +115,7 @@ class _ViewerHomePageState extends State<ViewerHomePage> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 66,
-                height: 66,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      AppThemeColors.info,
-                      AppThemeColors.primary,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: const Icon(
-                  Icons.emoji_events_outlined,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
+              _buildCompetitionImage(competition),
               const SizedBox(width: 18),
               Expanded(
                 child: Column(

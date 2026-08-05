@@ -1,4 +1,8 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/competition_model.dart';
 import '../../repositories/competition_repository.dart';
@@ -17,6 +21,7 @@ class CompetitionFormPage extends StatefulWidget {
 
 class _CompetitionFormPageState extends State<CompetitionFormPage> {
   final _repository = CompetitionRepository();
+  final _supabase = Supabase.instance.client;
 
   final _nameController = TextEditingController();
   final _shortNameController = TextEditingController();
@@ -27,6 +32,7 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
   final _startDateController = TextEditingController();
   final _endDateController = TextEditingController();
   final _participatingTeamsController = TextEditingController();
+  final _imageUrlController = TextEditingController();
   final _teamCountController = TextEditingController();
   final _advancingTeamCountController = TextEditingController();
   final _standingsController = TextEditingController();
@@ -40,6 +46,9 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
 
   bool _isLoading = false;
   String? _errorMessage;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageFileName;
+  String? _existingImageUrl;
 
   bool get isEditing => widget.competition != null;
 
@@ -58,6 +67,8 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
       _startDateController.text = item.startDate ?? '';
       _endDateController.text = item.endDate ?? '';
       _participatingTeamsController.text = item.participatingTeamsText ?? '';
+      _imageUrlController.text = item.imageUrl ?? '';
+      _existingImageUrl = item.imageUrl;
       _teamCountController.text = item.teamCount?.toString() ?? '';
       _advancingTeamCountController.text =
           item.advancingTeamCount?.toString() ?? '';
@@ -69,6 +80,85 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
       _isPublic = item.isPublic;
       _isFeaturedForViewer = item.isFeaturedForViewer;
     }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      if (file.bytes == null) {
+        setState(() {
+          _errorMessage = 'Nao foi possivel ler a imagem selecionada.';
+        });
+        return;
+      }
+
+      setState(() {
+        _selectedImageBytes = file.bytes;
+        _selectedImageFileName = file.name;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erro ao selecionar imagem: $e';
+      });
+    }
+  }
+
+  String _getFileExtension(String? fileName) {
+    if (fileName == null || !fileName.contains('.')) {
+      return 'webp';
+    }
+
+    return fileName.split('.').last.toLowerCase();
+  }
+
+  String _getContentType(String extension) {
+    switch (extension) {
+      case 'png':
+        return 'image/png';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      default:
+        return 'image/webp';
+    }
+  }
+
+  String _buildImagePublicUrl(String path) {
+    final publicUrl =
+        _supabase.storage.from('competition-images').getPublicUrl(path);
+    final cacheVersion = DateTime.now().millisecondsSinceEpoch;
+    return '$publicUrl?v=$cacheVersion';
+  }
+
+  Future<String?> _uploadImageIfNeeded(String competitionId) async {
+    if (_selectedImageBytes == null) {
+      final typedUrl = _imageUrlController.text.trim();
+      if (typedUrl.isNotEmpty) return typedUrl;
+      return _existingImageUrl;
+    }
+
+    final ext = _getFileExtension(_selectedImageFileName);
+    final path = 'competitions/$competitionId.$ext';
+
+    await _supabase.storage.from('competition-images').uploadBinary(
+          path,
+          _selectedImageBytes!,
+          fileOptions: FileOptions(
+            upsert: true,
+            contentType: _getContentType(ext),
+          ),
+        );
+
+    return _buildImagePublicUrl(path);
   }
 
   Future<void> _save() async {
@@ -162,6 +252,9 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
         participatingTeamsText: _participatingTeamsController.text.trim().isEmpty
             ? null
             : _participatingTeamsController.text.trim(),
+        imageUrl: _imageUrlController.text.trim().isEmpty
+            ? _existingImageUrl
+            : _imageUrlController.text.trim(),
         teamCount: teamCount,
         advancingTeamCount: advancingTeamCount,
         standingsText: _standingsController.text.trim().isEmpty
@@ -174,10 +267,42 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
         isFeaturedForViewer: _isFeaturedForViewer,
       );
 
+      late CompetitionModel savedCompetition;
+
       if (isEditing) {
         await _repository.updateCompetition(model);
+        savedCompetition = model;
       } else {
-        await _repository.createCompetition(model);
+        savedCompetition = await _repository.createCompetition(model);
+      }
+
+      final imageUrl = await _uploadImageIfNeeded(savedCompetition.id);
+
+      if (imageUrl != savedCompetition.imageUrl) {
+        final updatedModel = CompetitionModel(
+          id: savedCompetition.id,
+          name: savedCompetition.name,
+          shortName: savedCompetition.shortName,
+          competitionType: savedCompetition.competitionType,
+          year: savedCompetition.year,
+          category: savedCompetition.category,
+          gender: savedCompetition.gender,
+          organizer: savedCompetition.organizer,
+          hostCity: savedCompetition.hostCity,
+          hostState: savedCompetition.hostState,
+          startDate: savedCompetition.startDate,
+          endDate: savedCompetition.endDate,
+          participatingTeamsText: savedCompetition.participatingTeamsText,
+          imageUrl: imageUrl,
+          teamCount: savedCompetition.teamCount,
+          advancingTeamCount: savedCompetition.advancingTeamCount,
+          standingsText: savedCompetition.standingsText,
+          notes: savedCompetition.notes,
+          isPublic: savedCompetition.isPublic,
+          isFeaturedForViewer: savedCompetition.isFeaturedForViewer,
+        );
+
+        await _repository.updateCompetition(updatedModel);
       }
 
       if (!mounted) return;
@@ -215,6 +340,62 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
     );
   }
 
+  Widget _buildImagePreview() {
+    Widget child;
+
+    if (_selectedImageBytes != null) {
+      child = Image.memory(
+        _selectedImageBytes!,
+        width: double.infinity,
+        height: 150,
+        fit: BoxFit.cover,
+      );
+    } else if (_imageUrlController.text.trim().isNotEmpty) {
+      child = Image.network(
+        _imageUrlController.text.trim(),
+        width: double.infinity,
+        height: 150,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildDefaultImagePreview(),
+      );
+    } else if (_existingImageUrl != null && _existingImageUrl!.isNotEmpty) {
+      child = Image.network(
+        _existingImageUrl!,
+        width: double.infinity,
+        height: 150,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildDefaultImagePreview(),
+      );
+    } else {
+      child = _buildDefaultImagePreview();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 150,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade400),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildDefaultImagePreview() {
+    return Container(
+      color: const Color(0xFFEAF8F6),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.emoji_events_outlined,
+        size: 54,
+        color: Color(0xFF0D7F7A),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -226,6 +407,7 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
     _startDateController.dispose();
     _endDateController.dispose();
     _participatingTeamsController.dispose();
+    _imageUrlController.dispose();
     _teamCountController.dispose();
     _advancingTeamCountController.dispose();
     _standingsController.dispose();
@@ -250,6 +432,41 @@ class _CompetitionFormPageState extends State<CompetitionFormPage> {
               'Ano',
               keyboardType: TextInputType.number,
             ),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Foto da competicao',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildImagePreview(),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: _isLoading ? null : _pickImage,
+                child: const Text('Selecionar foto da competicao'),
+              ),
+            ),
+            if (_selectedImageFileName != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Arquivo selecionado: $_selectedImageFileName',
+                textAlign: TextAlign.center,
+              ),
+            ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: _imageUrlController,
+              keyboardType: TextInputType.url,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'URL da foto (opcional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: _competitionType,
               decoration: const InputDecoration(

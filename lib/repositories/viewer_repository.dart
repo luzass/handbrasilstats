@@ -1,10 +1,14 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/admin_competition_overview_model.dart';
 import '../models/competition_model.dart';
 import '../models/viewer_match_model.dart';
+import 'admin_competition_overview_repository.dart';
 
 class ViewerRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
+  final AdminCompetitionOverviewRepository _overviewRepository =
+      AdminCompetitionOverviewRepository();
   static const _visibleCompetitionNames = [
     'Campeonato W.A Masculino',
     'Campeonato W.A Feminino',
@@ -24,6 +28,12 @@ class ViewerRepository {
     return (response as List)
         .map((item) => CompetitionModel.fromMap(item))
         .toList();
+  }
+
+  Future<CompetitionOverviewDetails> getCompetitionDetails(
+    CompetitionModel competition,
+  ) {
+    return _overviewRepository.getCompetitionDetails(competition);
   }
 
   Future<List<ViewerMatchModel>> getCompetitionMatches(String competitionId) async {

@@ -12,6 +12,7 @@ class CompetitionModel {
   final String? startDate;
   final String? endDate;
   final String? participatingTeamsText;
+  final String? imageUrl;
   final int? teamCount;
   final int? advancingTeamCount;
   final String? standingsText;
@@ -33,6 +34,7 @@ class CompetitionModel {
     required this.startDate,
     required this.endDate,
     required this.participatingTeamsText,
+    required this.imageUrl,
     required this.teamCount,
     required this.advancingTeamCount,
     required this.standingsText,
@@ -56,6 +58,7 @@ class CompetitionModel {
       startDate: map['start_date']?.toString(),
       endDate: map['end_date']?.toString(),
       participatingTeamsText: map['participating_teams_text'] as String?,
+      imageUrl: map['image_url'] as String?,
       teamCount: map['team_count'] as int?,
       advancingTeamCount: map['advancing_team_count'] as int?,
       standingsText: map['standings_text'] as String?,
@@ -79,6 +82,7 @@ class CompetitionModel {
       'start_date': startDate,
       'end_date': endDate,
       'participating_teams_text': participatingTeamsText,
+      'image_url': imageUrl,
       'team_count': teamCount,
       'advancing_team_count': advancingTeamCount,
       'standings_text': standingsText,
