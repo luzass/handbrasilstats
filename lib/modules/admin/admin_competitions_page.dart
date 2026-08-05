@@ -9,6 +9,16 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_backdrop.dart';
 import 'competition_list_page.dart';
 
+String _titleCase(String value) {
+  if (value.isEmpty) return value;
+  final normalized = value.replaceAll('_', ' ');
+  return normalized
+      .split(' ')
+      .where((part) => part.isNotEmpty)
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
+}
+
 class AdminCompetitionsPage extends StatefulWidget {
   const AdminCompetitionsPage({super.key});
 
@@ -311,7 +321,7 @@ class _CompetitionOverviewTileState extends State<_CompetitionOverviewTile> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          '${widget.competitionDateLabel} • ${item.category} • ${item.gender} • ${item.competitionType}',
+                          '${widget.competitionDateLabel} • ${_titleCase(item.category)} ${_titleCase(item.gender)} • ${_titleCase(item.competitionType)}',
                           style: const TextStyle(
                             color: AppThemeColors.slate,
                             fontWeight: FontWeight.w600,
@@ -523,7 +533,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${competition.category} • ${competition.gender} • ${competition.year}',
+            '${_titleCase(competition.category)} ${_titleCase(competition.gender)} • ${competition.year}',
             style: const TextStyle(
               color: Colors.white70,
               fontWeight: FontWeight.w600,
@@ -900,6 +910,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
             SizedBox(width: 80, child: _headerLabel('GP')),
             SizedBox(width: 80, child: _headerLabel('GC')),
             SizedBox(width: 80, child: _headerLabel('SG')),
+            SizedBox(width: 80, child: _headerLabel('AVG')),
             SizedBox(width: 80, child: _headerLabel('PTS')),
           ],
         ),
@@ -973,6 +984,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
             _fixedValueCell(row.goalsFor, width: 80),
             _fixedValueCell(row.goalsAgainst, width: 80),
             _fixedValueCell(row.goalDifference, width: 80),
+            _fixedValueCell(row.goalAverage.toStringAsFixed(2), width: 80),
             _fixedValueCell(row.points, width: 80, isBold: true),
           ],
         ),

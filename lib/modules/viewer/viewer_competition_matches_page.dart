@@ -346,7 +346,7 @@ class _ViewerCompetitionMatchesPageState
       title: 'Classificação',
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final tableWidth = math.max(constraints.maxWidth, 900.0).toDouble();
+          final tableWidth = math.max(constraints.maxWidth, 960.0).toDouble();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,6 +385,7 @@ class _ViewerCompetitionMatchesPageState
                               _buildHeaderCell('GP', width: 64),
                               _buildHeaderCell('GC', width: 64),
                               _buildHeaderCell('SG', width: 64),
+                              _buildHeaderCell('AVG', width: 70),
                               _buildHeaderCell('PTS', width: 70),
                             ],
                           ),
@@ -479,6 +480,7 @@ class _ViewerCompetitionMatchesPageState
           _buildValueCell(row.goalsFor, width: 64),
           _buildValueCell(row.goalsAgainst, width: 64),
           _buildValueCell(row.goalDifference, width: 64),
+          _buildValueCell(row.goalAverage.toStringAsFixed(2), width: 70),
           _buildValueCell(row.points, width: 70, isBold: true),
         ],
       ),

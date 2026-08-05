@@ -57,6 +57,7 @@ class CompetitionStandingsRow {
   final int goalsFor;
   final int goalsAgainst;
   final int goalDifference;
+  final double goalAverage;
   final int points;
 
   const CompetitionStandingsRow({
@@ -69,6 +70,7 @@ class CompetitionStandingsRow {
     required this.goalsFor,
     required this.goalsAgainst,
     required this.goalDifference,
+    required this.goalAverage,
     required this.points,
   });
 }

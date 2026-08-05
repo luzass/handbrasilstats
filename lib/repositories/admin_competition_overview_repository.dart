@@ -222,6 +222,7 @@ class AdminCompetitionOverviewRepository {
           goalsFor: items[i].goalsFor,
           goalsAgainst: items[i].goalsAgainst,
           goalDifference: items[i].goalDifference,
+          goalAverage: items[i].goalAverage,
           points: items[i].points,
         ),
     ];
@@ -482,6 +483,13 @@ class _StandingsAccumulator {
   });
 
   int get goalDifference => goalsFor - goalsAgainst;
+  double get goalAverage {
+    if (goalsAgainst == 0) {
+      return goalsFor == 0 ? 0 : goalsFor.toDouble();
+    }
+    return goalsFor / goalsAgainst;
+  }
+
   int get points => (wins * 2) + draws;
 }
 

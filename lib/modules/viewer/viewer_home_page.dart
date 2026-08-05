@@ -61,6 +61,16 @@ class _ViewerHomePageState extends State<ViewerHomePage> {
     );
   }
 
+  String _titleCase(String value) {
+    if (value.isEmpty) return value;
+    final normalized = value.replaceAll('_', ' ');
+    return normalized
+        .split(' ')
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
+  }
+
   Widget _buildCompetitionImage(CompetitionModel competition) {
     final imageUrl = competition.imageUrl;
 
@@ -131,7 +141,7 @@ class _ViewerHomePageState extends State<ViewerHomePage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${competition.category} • ${competition.gender} • ${competition.year}',
+                      '${_titleCase(competition.category)} ${_titleCase(competition.gender)} • ${competition.year}',
                       style: const TextStyle(
                         color: AppThemeColors.slate,
                         fontWeight: FontWeight.w600,
