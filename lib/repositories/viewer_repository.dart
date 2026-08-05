@@ -54,8 +54,8 @@ class ViewerRepository {
           current_minute,
           current_second,
           competitions(name),
-          home_team:teams!matches_home_team_id_fkey(name, shield_url),
-          away_team:teams!matches_away_team_id_fkey(name, shield_url)
+          home_team:teams!matches_home_team_id_fkey(name, short_name, shield_url),
+          away_team:teams!matches_away_team_id_fkey(name, short_name, shield_url)
         ''')
         .eq('competition_id', competitionId)
         .order('match_datetime', ascending: true);
@@ -83,8 +83,8 @@ class ViewerRepository {
           current_minute,
           current_second,
           competitions(name),
-          home_team:teams!matches_home_team_id_fkey(name, shield_url),
-          away_team:teams!matches_away_team_id_fkey(name, shield_url)
+          home_team:teams!matches_home_team_id_fkey(name, short_name, shield_url),
+          away_team:teams!matches_away_team_id_fkey(name, short_name, shield_url)
         ''')
         .eq('id', matchId)
         .maybeSingle();

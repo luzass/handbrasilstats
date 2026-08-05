@@ -634,7 +634,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            team.name,
+                            team.displayName,
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -794,7 +794,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
         ],
         Flexible(
           child: Text(
-            team.name,
+            team.displayName,
             textAlign: alignEnd ? TextAlign.end : TextAlign.start,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -955,7 +955,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      row.team.name,
+                      row.team.displayName,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
@@ -1092,7 +1092,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      team.name,
+                      team.displayName,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
@@ -1147,7 +1147,7 @@ class _CompetitionOverviewContent extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      item.team.name,
+                      item.team.displayName,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,

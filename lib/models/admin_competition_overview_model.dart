@@ -1,15 +1,22 @@
 class CompetitionTeamOverview {
   final String id;
   final String name;
+  final String? shortName;
   final String? state;
   final String? shieldUrl;
 
   const CompetitionTeamOverview({
     required this.id,
     required this.name,
+    required this.shortName,
     required this.state,
     required this.shieldUrl,
   });
+
+  String get displayName {
+    final value = shortName?.trim();
+    return value == null || value.isEmpty ? name : value;
+  }
 }
 
 class CompetitionMatchOverview {

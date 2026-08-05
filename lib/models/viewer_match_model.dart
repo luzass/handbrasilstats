@@ -46,10 +46,14 @@ class ViewerMatchModel {
       competitionName:
           (map['competitions']?['name'] as String?) ?? 'Competicao',
       homeTeamId: map['home_team_id'] as String,
-      homeTeamName: (map['home_team']?['name'] as String?) ?? 'Time A',
+      homeTeamName: (map['home_team']?['short_name'] as String?) ??
+          (map['home_team']?['name'] as String?) ??
+          'Time A',
       homeTeamShieldUrl: map['home_team']?['shield_url'] as String?,
       awayTeamId: map['away_team_id'] as String,
-      awayTeamName: (map['away_team']?['name'] as String?) ?? 'Time B',
+      awayTeamName: (map['away_team']?['short_name'] as String?) ??
+          (map['away_team']?['name'] as String?) ??
+          'Time B',
       awayTeamShieldUrl: map['away_team']?['shield_url'] as String?,
       scoreHome: map['score_home'] as int? ?? 0,
       scoreAway: map['score_away'] as int? ?? 0,

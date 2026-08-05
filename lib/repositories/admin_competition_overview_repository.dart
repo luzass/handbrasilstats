@@ -148,6 +148,7 @@ class AdminCompetitionOverviewRepository {
     return CompetitionTeamOverview(
       id: map['id'] as String? ?? fallbackId ?? '',
       name: map['name'] as String? ?? 'Time',
+      shortName: map['short_name'] as String?,
       state: map['state'] as String?,
       shieldUrl: map['shield_url'] as String?,
     );
@@ -196,19 +197,18 @@ class AdminCompetitionOverviewRepository {
       }
     }
 
-    final items = table.values.toList()
-      ..sort((a, b) {
-        final pointsCompare = b.points.compareTo(a.points);
-        if (pointsCompare != 0) return pointsCompare;
+    final finishedClassificationMatches = matches
+        .where(
+          (item) =>
+              item.status == 'finalizado' &&
+              item.matchStage == 'classificatoria',
+        )
+        .toList();
 
-        final diffCompare = b.goalDifference.compareTo(a.goalDifference);
-        if (diffCompare != 0) return diffCompare;
-
-        final goalsCompare = b.goalsFor.compareTo(a.goalsFor);
-        if (goalsCompare != 0) return goalsCompare;
-
-        return a.team.name.compareTo(b.team.name);
-      });
+    final items = _sortStandings(
+      table.values.toList(),
+      finishedClassificationMatches,
+    );
 
     return [
       for (var i = 0; i < items.length; i++)
@@ -225,6 +225,140 @@ class AdminCompetitionOverviewRepository {
           points: items[i].points,
         ),
     ];
+  }
+
+  List<_StandingsAccumulator> _sortStandings(
+    List<_StandingsAccumulator> items,
+    List<CompetitionMatchOverview> matches,
+  ) {
+    final sorted = items.toList()
+      ..sort((a, b) {
+        final pointsCompare = b.points.compareTo(a.points);
+        if (pointsCompare != 0) return pointsCompare;
+        return _compareGeneralCriteria(a, b);
+      });
+
+    final result = <_StandingsAccumulator>[];
+    var index = 0;
+
+    while (index < sorted.length) {
+      final points = sorted[index].points;
+      final group = <_StandingsAccumulator>[];
+
+      while (index < sorted.length && sorted[index].points == points) {
+        group.add(sorted[index]);
+        index += 1;
+      }
+
+      if (group.length == 1) {
+        result.add(group.first);
+        continue;
+      }
+
+      group.sort((a, b) => _compareTiedTeams(a, b, group, matches));
+      result.addAll(group);
+    }
+
+    return result;
+  }
+
+  int _compareTiedTeams(
+    _StandingsAccumulator a,
+    _StandingsAccumulator b,
+    List<_StandingsAccumulator> tiedGroup,
+    List<CompetitionMatchOverview> matches,
+  ) {
+    if (tiedGroup.length == 2) {
+      final direct = _headToHeadForTwo(a.team.id, b.team.id, matches);
+      if (direct != 0) return direct;
+      return _compareGeneralCriteria(a, b);
+    }
+
+    final tiedIds = tiedGroup.map((item) => item.team.id).toSet();
+    final aMini = _miniTableFor(a.team.id, tiedIds, matches);
+    final bMini = _miniTableFor(b.team.id, tiedIds, matches);
+
+    final averageCompare = bMini.goalAverage.compareTo(aMini.goalAverage);
+    if (averageCompare != 0) return averageCompare;
+
+    final goalsForCompare = bMini.goalsFor.compareTo(aMini.goalsFor);
+    if (goalsForCompare != 0) return goalsForCompare;
+
+    final goalsAgainstCompare = aMini.goalsAgainst.compareTo(bMini.goalsAgainst);
+    if (goalsAgainstCompare != 0) return goalsAgainstCompare;
+
+    return _compareGeneralCriteria(a, b);
+  }
+
+  int _headToHeadForTwo(
+    String teamAId,
+    String teamBId,
+    List<CompetitionMatchOverview> matches,
+  ) {
+    var teamAPoints = 0;
+    var teamBPoints = 0;
+
+    for (final match in matches.where(
+      (item) =>
+          (item.homeTeam.id == teamAId && item.awayTeam.id == teamBId) ||
+          (item.homeTeam.id == teamBId && item.awayTeam.id == teamAId),
+    )) {
+      final teamAGoals =
+          match.homeTeam.id == teamAId ? match.scoreHome : match.scoreAway;
+      final teamBGoals =
+          match.homeTeam.id == teamBId ? match.scoreHome : match.scoreAway;
+
+      if (teamAGoals > teamBGoals) {
+        teamAPoints += 2;
+      } else if (teamBGoals > teamAGoals) {
+        teamBPoints += 2;
+      } else {
+        teamAPoints += 1;
+        teamBPoints += 1;
+      }
+    }
+
+    return teamBPoints.compareTo(teamAPoints);
+  }
+
+  _MiniTableAccumulator _miniTableFor(
+    String teamId,
+    Set<String> tiedIds,
+    List<CompetitionMatchOverview> matches,
+  ) {
+    final accumulator = _MiniTableAccumulator();
+
+    for (final match in matches.where(
+      (item) =>
+          tiedIds.contains(item.homeTeam.id) &&
+          tiedIds.contains(item.awayTeam.id),
+    )) {
+      if (match.homeTeam.id == teamId) {
+        accumulator.goalsFor += match.scoreHome;
+        accumulator.goalsAgainst += match.scoreAway;
+      } else if (match.awayTeam.id == teamId) {
+        accumulator.goalsFor += match.scoreAway;
+        accumulator.goalsAgainst += match.scoreHome;
+      }
+    }
+
+    return accumulator;
+  }
+
+  int _compareGeneralCriteria(
+    _StandingsAccumulator a,
+    _StandingsAccumulator b,
+  ) {
+    final diffCompare = b.goalDifference.compareTo(a.goalDifference);
+    if (diffCompare != 0) return diffCompare;
+
+    final goalsForCompare = b.goalsFor.compareTo(a.goalsFor);
+    if (goalsForCompare != 0) return goalsForCompare;
+
+    final goalsAgainstCompare = a.goalsAgainst.compareTo(b.goalsAgainst);
+    if (goalsAgainstCompare != 0) return goalsAgainstCompare;
+
+    return a.team.displayName.compareTo(b.team.displayName);
   }
 
   List<CompetitionTopScorerRow> _buildTopScorers({
@@ -262,6 +396,7 @@ class AdminCompetitionOverviewRepository {
           const CompetitionTeamOverview(
             id: '',
             name: 'Time',
+            shortName: null,
             state: null,
             shieldUrl: null,
           );
@@ -316,6 +451,7 @@ class AdminCompetitionOverviewRepository {
           const CompetitionTeamOverview(
             id: '',
             name: 'Time',
+            shortName: null,
             state: null,
             shieldUrl: null,
           );
@@ -347,6 +483,18 @@ class _StandingsAccumulator {
 
   int get goalDifference => goalsFor - goalsAgainst;
   int get points => (wins * 2) + draws;
+}
+
+class _MiniTableAccumulator {
+  int goalsFor = 0;
+  int goalsAgainst = 0;
+
+  double get goalAverage {
+    if (goalsAgainst == 0) {
+      return goalsFor == 0 ? 0 : goalsFor.toDouble();
+    }
+    return goalsFor / goalsAgainst;
+  }
 }
 
 class _ScorerAccumulator {

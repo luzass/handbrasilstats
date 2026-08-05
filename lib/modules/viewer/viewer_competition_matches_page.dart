@@ -29,7 +29,7 @@ class _ViewerCompetitionMatchesPageState
   String? _errorMessage;
   List<ViewerMatchModel> _matches = [];
   CompetitionOverviewDetails? _details;
-  String _selectedFilter = 'all';
+  String _selectedTab = 'classification';
 
   @override
   void initState() {
@@ -61,41 +61,16 @@ class _ViewerCompetitionMatchesPageState
     }
   }
 
-  int get _liveCount =>
-      _matches.where((match) => match.status == 'em_andamento').length;
+  List<ViewerMatchModel> get _orderedMatches => _matches;
 
-  int get _finishedCount =>
-      _matches.where((match) => match.status == 'finalizado').length;
-
-  int get _upcomingCount => _matches
-      .where(
-        (match) =>
-            match.status != 'finalizado' && match.status != 'em_andamento',
-      )
-      .length;
-
-  List<ViewerMatchModel> get _filteredMatches {
-    switch (_selectedFilter) {
-      case 'live':
-        return _matches
-            .where((match) => match.status == 'em_andamento')
-            .toList();
-      case 'finished':
-        return _matches
-            .where((match) => match.status == 'finalizado')
-            .toList();
-      case 'upcoming':
-        return _matches
-            .where(
-              (match) =>
-                  match.status != 'finalizado' &&
-                  match.status != 'em_andamento',
-            )
-            .toList();
-      case 'all':
-      default:
-        return _matches;
-    }
+  String _titleCase(String value) {
+    if (value.isEmpty) return value;
+    final normalized = value.replaceAll('_', ' ');
+    return normalized
+        .split(' ')
+        .where((part) => part.isNotEmpty)
+        .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+        .join(' ');
   }
 
   String _timeLabel(ViewerMatchModel match) {
@@ -130,7 +105,7 @@ class _ViewerCompetitionMatchesPageState
       case 'final':
         return 'Final';
       case 'terceiro_lugar':
-        return '3 lugar';
+        return '3° Lugar';
       case 'semifinal':
         return 'Semi';
       case 'quartas':
@@ -170,62 +145,39 @@ class _ViewerCompetitionMatchesPageState
     );
   }
 
-  Widget _buildSummaryChip(String label, String value, Color color) {
-    final selected =
-        (_selectedFilter == 'all' && label == 'Todos') ||
-        (_selectedFilter == 'live' && label == 'Ao vivo') ||
-        (_selectedFilter == 'finished' && label == 'Finalizado') ||
-        (_selectedFilter == 'upcoming' && label == 'Proximos');
+  Widget _buildTabButton(String tab, String label) {
+    final selected = _selectedTab == tab;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: () {
-        setState(() {
-          switch (label) {
-            case 'Ao vivo':
-              _selectedFilter = 'live';
-              break;
-            case 'Finalizado':
-              _selectedFilter = 'finished';
-              break;
-            case 'Proximos':
-              _selectedFilter = 'upcoming';
-              break;
-            default:
-              _selectedFilter = 'all';
-          }
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? color.withValues(alpha: 0.24)
-              : color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(999),
-          border: selected
-              ? Border.all(color: color.withValues(alpha: 0.50))
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          setState(() {
+            _selectedTab = tab;
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            color: selected
+                ? const Color(0xFF4FC3F7).withValues(alpha: 0.22)
+                : Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF4FC3F7).withValues(alpha: 0.60)
+                  : Colors.white.withValues(alpha: 0.06),
             ),
-            const SizedBox(width: 6),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? const Color(0xFF4FC3F7) : Colors.white70,
+              fontWeight: FontWeight.w900,
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -380,10 +332,9 @@ class _ViewerCompetitionMatchesPageState
     final details = _details;
     if (details == null || details.standings.isEmpty) {
       return _buildSection(
-        title: 'Tabela de classificacao',
-        subtitle: 'A tabela aparece quando houver jogos classificatorios finalizados.',
+        title: 'Classificação',
         child: const Text(
-          'Ainda nao ha dados suficientes para montar a classificacao.',
+          'Ainda nao ha dados suficientes para montar a classificação.',
           style: TextStyle(color: Colors.white70),
         ),
       );
@@ -392,9 +343,7 @@ class _ViewerCompetitionMatchesPageState
     final qualifiedCount = widget.competition.advancingTeamCount ?? 0;
 
     return _buildSection(
-      title: 'Tabela de classificacao',
-      subtitle:
-          'Vitoria vale 2 pontos, empate 1 e derrota 0. So contam jogos classificatorios finalizados.',
+      title: 'Classificação',
       child: LayoutBuilder(
         builder: (context, constraints) {
           final tableWidth = math.max(constraints.maxWidth, 900.0).toDouble();
@@ -451,16 +400,14 @@ class _ViewerCompetitionMatchesPageState
                   ),
                 ),
               ),
-              if (qualifiedCount > 0) ...[
-                const SizedBox(height: 10),
-                Text(
-                  '*Classificam ${qualifiedCount} time${qualifiedCount == 1 ? '' : 's'} para a proxima fase.',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontStyle: FontStyle.italic,
-                  ),
+              const SizedBox(height: 10),
+              const Text(
+                '*Classificam os dois primeiros colocados para a final e o terceiro e quarto colocados para a disputa de 3° Lugar.',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontStyle: FontStyle.italic,
                 ),
-              ],
+              ),
             ],
           );
         },
@@ -514,7 +461,7 @@ class _ViewerCompetitionMatchesPageState
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    row.team.name,
+                    row.team.displayName,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
@@ -552,7 +499,6 @@ class _ViewerCompetitionMatchesPageState
           width: width,
           child: _buildSection(
             title: 'Artilheiros',
-            subtitle: 'Top 10 jogadores com mais gols.',
             child: _buildScorersList(details?.topScorers ?? const []),
           ),
         );
@@ -561,7 +507,6 @@ class _ViewerCompetitionMatchesPageState
           width: width,
           child: _buildSection(
             title: 'Goleiros',
-            subtitle: 'Top 10 por melhor percentual de defesa.',
             child: _buildGoalkeepersList(details?.topGoalkeepers ?? const []),
           ),
         );
@@ -589,7 +534,7 @@ class _ViewerCompetitionMatchesPageState
           _buildRankingRow(
             position: i + 1,
             shieldUrl: rows[i].team.shieldUrl,
-            teamName: rows[i].team.name,
+            teamName: rows[i].team.displayName,
             name: rows[i].playerName,
             value: '${rows[i].goals} gol${rows[i].goals == 1 ? '' : 's'}',
           ),
@@ -611,7 +556,7 @@ class _ViewerCompetitionMatchesPageState
           _buildRankingRow(
             position: i + 1,
             shieldUrl: rows[i].team.shieldUrl,
-            teamName: rows[i].team.name,
+            teamName: rows[i].team.displayName,
             name: rows[i].goalkeeperName,
             value: '${rows[i].savePercentage.toStringAsFixed(1)}%',
           ),
@@ -814,38 +759,11 @@ class _ViewerCompetitionMatchesPageState
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  '${widget.competition.category} • ${widget.competition.gender} • ${widget.competition.year}',
+                                  '${_titleCase(widget.competition.category)} ${_titleCase(widget.competition.gender)} • ${widget.competition.year}',
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                                const SizedBox(height: 18),
-                                Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  children: [
-                                    _buildSummaryChip(
-                                      'Todos',
-                                      '${_matches.length}',
-                                      Colors.white70,
-                                    ),
-                                    _buildSummaryChip(
-                                      'Ao vivo',
-                                      '$_liveCount',
-                                      const Color(0xFFFF5B5B),
-                                    ),
-                                    _buildSummaryChip(
-                                      'Finalizado',
-                                      '$_finishedCount',
-                                      const Color(0xFFB0BEC5),
-                                    ),
-                                    _buildSummaryChip(
-                                      'Proximos',
-                                      '$_upcomingCount',
-                                      const Color(0xFF4FC3F7),
-                                    ),
-                                  ],
                                 ),
                                     ],
                                   ),
@@ -854,36 +772,46 @@ class _ViewerCompetitionMatchesPageState
                             ),
                           ),
                           const SizedBox(height: 18),
-                          _buildStandingsSection(),
-                          const SizedBox(height: 18),
-                          _buildRankingsSection(),
-                          const SizedBox(height: 18),
-                          _buildSection(
-                            title: 'Partidas',
-                            subtitle:
-                                'Toque em uma partida para abrir o detalhe publico do jogo.',
-                            child: _filteredMatches.isEmpty
-                                ? const Text(
-                                    'Nenhuma partida encontrada nesse filtro.',
-                                    style: TextStyle(color: Colors.white70),
-                                  )
-                                : Column(
-                                    children: [
-                                      for (var i = 0;
-                                          i < _filteredMatches.length;
-                                          i++) ...[
-                                        _buildMatchRow(_filteredMatches[i]),
-                                        if (i != _filteredMatches.length - 1)
-                                          Divider(
-                                            height: 1,
-                                            color: Colors.white.withValues(
-                                              alpha: 0.06,
-                                            ),
-                                          ),
-                                      ],
-                                    ],
-                                  ),
+                          Row(
+                            children: [
+                              _buildTabButton(
+                                'classification',
+                                'Classificação',
+                              ),
+                              const SizedBox(width: 12),
+                              _buildTabButton('matches', 'Partidas'),
+                            ],
                           ),
+                          const SizedBox(height: 18),
+                          if (_selectedTab == 'classification') ...[
+                            _buildStandingsSection(),
+                            const SizedBox(height: 18),
+                            _buildRankingsSection(),
+                          ] else
+                            _buildSection(
+                              title: 'Partidas',
+                              child: _orderedMatches.isEmpty
+                                  ? const Text(
+                                      'Nenhuma partida encontrada.',
+                                      style: TextStyle(color: Colors.white70),
+                                    )
+                                  : Column(
+                                      children: [
+                                        for (var i = 0;
+                                            i < _orderedMatches.length;
+                                            i++) ...[
+                                          _buildMatchRow(_orderedMatches[i]),
+                                          if (i != _orderedMatches.length - 1)
+                                            Divider(
+                                              height: 1,
+                                              color: Colors.white.withValues(
+                                                alpha: 0.06,
+                                              ),
+                                            ),
+                                        ],
+                                      ],
+                                    ),
+                            ),
                         ],
                       ),
                     ),
