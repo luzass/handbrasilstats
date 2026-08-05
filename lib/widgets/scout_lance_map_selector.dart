@@ -489,10 +489,10 @@ class _ScoutLanceMapPainter extends CustomPainter {
     // The long continuation of these guide lines is intentionally clipped out,
     // matching the compact attack-map reference instead of showing a full court.
     final bottomY = height * ScoutLanceMapSelector.bottomY;
-    final leftSideStart = Offset(width * 0.20, goalLineY + areaRy * 0.86);
-    final rightSideStart = Offset(width * 0.80, goalLineY + areaRy * 0.86);
-    final leftSideEnd = Offset(width * 0.04, bottomY);
-    final rightSideEnd = Offset(width * 0.96, bottomY);
+    final leftSideStart = Offset(width * 0.18, goalLineY + areaRy * 0.70);
+    final rightSideStart = Offset(width * 0.82, goalLineY + areaRy * 0.70);
+    final leftSideEnd = Offset(width * 0.01, bottomY);
+    final rightSideEnd = Offset(width * 0.99, bottomY);
     final leftInnerStart = Offset(width * 0.39, goalLineY + areaRy * 1.02);
     final rightInnerStart = Offset(width * 0.61, goalLineY + areaRy * 1.02);
 
