@@ -131,8 +131,6 @@ class _TeamAthleteGoalZoneBreakdownSectionState
             const Center(child: CircularProgressIndicator())
           else if (_errorMessage != null)
             Text(_errorMessage!)
-          else if (_breakdown.isEmpty)
-            const Text('Nenhum dado encontrado para este filtro.')
           else ...[
             ShotGoalHeatmapCourtWidget(
               breakdown: _breakdown,

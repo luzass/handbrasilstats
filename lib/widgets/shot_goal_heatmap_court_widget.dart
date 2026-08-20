@@ -222,8 +222,6 @@ class _GoalHeatmapCell extends StatelessWidget {
     final totalShots = zone?.totalShots ?? 0;
     final primaryValue =
         isGoalkeeper ? (zone?.totalSaves ?? 0) : (zone?.totalGoals ?? 0);
-    final hasData = totalShots > 0;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final labelSize = constraints.maxHeight * 0.22;
@@ -254,7 +252,7 @@ class _GoalHeatmapCell extends StatelessWidget {
                 ),
                 SizedBox(height: constraints.maxHeight * 0.02),
                 Text(
-                  hasData ? '${percentage.toStringAsFixed(1)}%' : '-',
+                  '${percentage.toStringAsFixed(1)}%',
                   style: TextStyle(
                     color: const Color(0xFF51617A),
                     fontWeight: FontWeight.w800,
