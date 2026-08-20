@@ -36,7 +36,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
     this.enabled = true,
   });
 
-  static const Offset _sevenMeterAnchor = Offset(0.50, 0.56);
+  static const Offset _sevenMeterAnchor = Offset(0.50, 0.55);
 
   static const List<List<int>> _goalRows = [
     [1, 4, 7],
@@ -45,16 +45,16 @@ class ScoutLanceMapSelector extends StatelessWidget {
   ];
 
   static const Map<int, Offset> _shotZoneAnchors = {
-    1: Offset(0.12, 0.44),
-    5: Offset(0.88, 0.44),
-    10: Offset(0.15, 0.54),
-    6: Offset(0.85, 0.54),
-    2: Offset(0.32, 0.61),
-    3: Offset(0.50, 0.62),
-    4: Offset(0.68, 0.61),
-    9: Offset(0.20, 0.665),
-    8: Offset(0.50, 0.665),
-    7: Offset(0.80, 0.665),
+    1: Offset(0.16, 0.48),
+    5: Offset(0.84, 0.48),
+    10: Offset(0.05, 0.58),
+    6: Offset(0.95, 0.58),
+    2: Offset(0.28, 0.58),
+    3: Offset(0.50, 0.64),
+    4: Offset(0.72, 0.58),
+    9: Offset(0.22, 0.69),
+    8: Offset(0.50, 0.69),
+    7: Offset(0.78, 0.69),
   };
 
   Widget _shotMarker(
@@ -64,9 +64,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
     double height,
   ) {
     final isSelected = selectedZoneId == zoneId;
-    final markerWidth = (width * 0.10).clamp(30.0, 50.0).toDouble();
-    final markerHeight = (height * 0.040).clamp(18.0, 28.0).toDouble();
-    final fontSize = (markerHeight * 0.42).clamp(8.0, 11.0).toDouble();
+    final markerWidth = (width * 0.13).clamp(42.0, 74.0).toDouble();
+    final markerHeight = (height * 0.054).clamp(24.0, 40.0).toDouble();
+    final fontSize = (markerHeight * 0.46).clamp(11.0, 17.0).toDouble();
 
     return Positioned(
       left: (width * anchor.dx) - (markerWidth / 2),
@@ -84,9 +84,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
 
   Widget _sevenMeterMarker(double width, double height) {
     final isSelected = selectedZoneId == 11;
-    final markerWidth = (width * 0.10).clamp(30.0, 48.0).toDouble();
-    final markerHeight = (height * 0.040).clamp(18.0, 27.0).toDouble();
-    final fontSize = (markerHeight * 0.42).clamp(8.0, 11.0).toDouble();
+    final markerWidth = (width * 0.13).clamp(42.0, 74.0).toDouble();
+    final markerHeight = (height * 0.054).clamp(24.0, 40.0).toDouble();
+    final fontSize = (markerHeight * 0.46).clamp(11.0, 17.0).toDouble();
 
     return Positioned(
       left: (width * _sevenMeterAnchor.dx) - (markerWidth / 2),
@@ -142,18 +142,12 @@ class ScoutLanceMapSelector extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           if (outsideGoalZonesEnabled) ...[
-            for (var column = 0; column < 5; column++)
+            for (var column = 1; column < 4; column++)
               cell(
                 goalZoneId: 10 + column,
-                cellLeft: column == 0
-                    ? 0
-                    : column == 4
-                        ? outsideWidth + goalWidth
-                        : outsideWidth + ((column - 1) * innerCellWidth),
+                cellLeft: outsideWidth + ((column - 1) * innerCellWidth),
                 cellTop: 0,
-                cellWidth: column == 0 || column == 4
-                    ? outsideWidth
-                    : innerCellWidth,
+                cellWidth: innerCellWidth,
                 cellHeight: outsideTopHeight,
                 enabledCell: true,
               ),

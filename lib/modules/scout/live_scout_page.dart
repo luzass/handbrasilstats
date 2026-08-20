@@ -1375,7 +1375,19 @@ Widget _buildMatchHeader({
     }
 
     if (shotResult == 'out' && id >= 10) {
-      return ' | F${(id - 9).toString().padLeft(2, '0')}';
+      const outsideLabels = {
+        11: 'F01',
+        12: 'F02',
+        13: 'F03',
+        15: 'F04',
+        16: 'F05',
+        17: 'F06',
+        18: 'F07',
+        19: 'F08',
+        20: 'F09',
+      };
+
+      return ' | ${outsideLabels[id] ?? 'F${id.toString().padLeft(2, '0')}'}';
     }
 
     return ' | G${id.toString().padLeft(2, '0')}';
