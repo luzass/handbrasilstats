@@ -36,7 +36,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
     this.enabled = true,
   });
 
-  static const Offset _sevenMeterAnchor = Offset(0.50, 0.55);
+  static const Offset _sevenMeterAnchor = Offset(0.50, 0.50);
 
   static const List<List<int>> _goalRows = [
     [1, 4, 7],
@@ -45,13 +45,13 @@ class ScoutLanceMapSelector extends StatelessWidget {
   ];
 
   static const Map<int, Offset> _shotZoneAnchors = {
-    1: Offset(0.16, 0.48),
-    5: Offset(0.84, 0.48),
+    1: Offset(0.16, 0.43),
+    5: Offset(0.84, 0.43),
     10: Offset(0.05, 0.58),
     6: Offset(0.95, 0.58),
-    2: Offset(0.28, 0.58),
-    3: Offset(0.50, 0.64),
-    4: Offset(0.72, 0.58),
+    2: Offset(0.28, 0.53),
+    3: Offset(0.50, 0.58),
+    4: Offset(0.72, 0.53),
     9: Offset(0.22, 0.72),
     8: Offset(0.50, 0.72),
     7: Offset(0.78, 0.72),
