@@ -45,8 +45,8 @@ class ScoutLanceMapSelector extends StatelessWidget {
   ];
 
   static const Map<int, Offset> _shotZoneAnchors = {
-    1: Offset(0.14, 0.40),
-    5: Offset(0.86, 0.40),
+    1: Offset(0.11, 0.40),
+    5: Offset(0.89, 0.40),
     10: Offset(0.05, 0.58),
     6: Offset(0.95, 0.58),
     2: Offset(0.31, 0.49),
