@@ -32,14 +32,14 @@ class _ShotDraft {
   final String? playerId;
   final int? zoneId;
   final int? goalZoneId;
-  final String result;
+  final String? result;
   final String attackContext;
 
   const _ShotDraft({
     this.playerId,
     this.zoneId,
     this.goalZoneId,
-    this.result = 'goal',
+    this.result,
     this.attackContext = 'normal',
   });
 
@@ -574,11 +574,11 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     return '$mm:$ss';
   }
 
-  bool _goalZoneIsRequired(String result) {
+  bool _goalZoneIsRequired(String? result) {
     return result == 'goal' || result == 'saved';
   }
 
-  bool _attackContextApplies(String result) {
+  bool _attackContextApplies(String? result) {
     return result == 'goal';
   }
 
@@ -616,6 +616,13 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return;
     }
 
+    if (draft.result == null) {
+      setState(() {
+        _errorMessage = 'Selecione o resultado do lance do time da esquerda.';
+      });
+      return;
+    }
+
     if (_goalZoneIsRequired(draft.result) && draft.goalZoneId == null) {
       setState(() {
         _errorMessage = 'Selecione a zona do gol do time da esquerda.';
@@ -642,7 +649,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
         zoneId: draft.zoneId!,
         goalZoneId: _goalZoneIsRequired(draft.result) ? draft.goalZoneId : null,
         shotType: draft.zoneId == 11 ? 'seven_meter' : 'open_play',
-        shotResult: draft.result,
+        shotResult: draft.result!,
         attackContext: _attackContextApplies(draft.result)
             ? draft.attackContext
             : 'normal',
@@ -691,6 +698,13 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return;
     }
 
+    if (draft.result == null) {
+      setState(() {
+        _errorMessage = 'Selecione o resultado do lance do time da direita.';
+      });
+      return;
+    }
+
     if (_goalZoneIsRequired(draft.result) && draft.goalZoneId == null) {
       setState(() {
         _errorMessage = 'Selecione a zona do gol do time da direita.';
@@ -717,7 +731,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
         zoneId: draft.zoneId!,
         goalZoneId: _goalZoneIsRequired(draft.result) ? draft.goalZoneId : null,
         shotType: draft.zoneId == 11 ? 'seven_meter' : 'open_play',
-        shotResult: draft.result,
+        shotResult: draft.result!,
         attackContext: _attackContextApplies(draft.result)
             ? draft.attackContext
             : 'normal',
@@ -872,7 +886,7 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
   }
 
   Widget _buildResultButtons({
-    required String selectedResult,
+    required String? selectedResult,
     required ValueChanged<String> onSelected,
     required bool compact,
   }) {
@@ -1659,7 +1673,7 @@ Widget _buildMatchHeader({
     required ValueChanged<int> onZoneSelected,
     required int? selectedGoalZoneId,
     required ValueChanged<int> onGoalZoneSelected,
-    required String selectedResult,
+    required String? selectedResult,
     required ValueChanged<String> onResultChanged,
     required String selectedAttackContext,
     required ValueChanged<String> onAttackContextChanged,
