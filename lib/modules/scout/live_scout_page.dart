@@ -575,7 +575,15 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
   }
 
   bool _goalZoneIsRequired(String? result) {
+    return result == 'goal' || result == 'saved' || result == 'out';
+  }
+
+  bool _insideGoalZonesEnabled(String? result) {
     return result == 'goal' || result == 'saved';
+  }
+
+  bool _outsideGoalZonesEnabled(String? result) {
+    return result == 'out';
   }
 
   bool _attackContextApplies(String? result) {
@@ -625,7 +633,9 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
 
     if (_goalZoneIsRequired(draft.result) && draft.goalZoneId == null) {
       setState(() {
-        _errorMessage = 'Selecione a zona do gol do time da esquerda.';
+        _errorMessage = draft.result == 'out'
+            ? 'Selecione onde a bola saiu no chute do time da esquerda.'
+            : 'Selecione a zona do gol do time da esquerda.';
       });
       return;
     }
@@ -707,7 +717,9 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
 
     if (_goalZoneIsRequired(draft.result) && draft.goalZoneId == null) {
       setState(() {
-        _errorMessage = 'Selecione a zona do gol do time da direita.';
+        _errorMessage = draft.result == 'out'
+            ? 'Selecione onde a bola saiu no chute do time da direita.'
+            : 'Selecione a zona do gol do time da direita.';
       });
       return;
     }
@@ -1354,6 +1366,21 @@ Widget _buildMatchHeader({
     }
   }
 
+  String _goalTargetLabel(dynamic value, String shotResult) {
+    final id = value is num
+        ? value.toInt()
+        : int.tryParse(value?.toString() ?? '');
+    if (id == null) {
+      return '';
+    }
+
+    if (shotResult == 'out' && id >= 10) {
+      return ' | F${(id - 9).toString().padLeft(2, '0')}';
+    }
+
+    return ' | G${id.toString().padLeft(2, '0')}';
+  }
+
   String _genericEventLabel(String value) {
     switch (value) {
       case 'suspension_2min':
@@ -1421,16 +1448,15 @@ Widget _buildMatchHeader({
 
                 final zoneId = event['zone_id'];
                 final goalZoneId = event['goal_zone_id'];
-                final result = _shotResultLabel(event['shot_result'] as String? ?? '-');
+                final shotResult = event['shot_result'] as String? ?? '-';
+                final result = _shotResultLabel(shotResult);
                 final goalType = attackContext == 'contra_ataque'
                     ? ' | Contra-ataque'
                     : (event['shot_result'] == 'goal' ? ' | Gol normal' : '');
                 final zoneText = zoneId == null
                     ? 'Z--'
                     : 'Z${zoneId.toString().padLeft(2, '0')}';
-                final goalZoneText = goalZoneId != null
-                    ? ' | G${goalZoneId.toString().padLeft(2, '0')}'
-                    : '';
+                final goalZoneText = _goalTargetLabel(goalZoneId, shotResult);
 
                 return ListTile(
                   dense: true,
@@ -1687,7 +1713,9 @@ Widget _buildMatchHeader({
     required bool isSavingGenericEvent,
     required bool genericNeedsPlayer,
   }) {
-    final goalZoneEnabled = _goalZoneIsRequired(selectedResult);
+    final goalTargetRequired = _goalZoneIsRequired(selectedResult);
+    final insideGoalZonesEnabled = _insideGoalZonesEnabled(selectedResult);
+    final outsideGoalZonesEnabled = _outsideGoalZonesEnabled(selectedResult);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1720,15 +1748,25 @@ Widget _buildMatchHeader({
                         selectedGoalZoneId: selectedGoalZoneId,
                         onZoneSelected: onZoneSelected,
                         onGoalZoneSelected: onGoalZoneSelected,
-                        goalZonesEnabled: goalZoneEnabled,
+                        goalZonesEnabled: insideGoalZonesEnabled,
+                        outsideGoalZonesEnabled: outsideGoalZonesEnabled,
                       ),
                     ),
                   ),
                 ),
-                if (!goalZoneEnabled) ...[
+                if (selectedResult == 'out') ...[
                   const SizedBox(height: 6),
                   Text(
-                    'Para Fora, Trave e Bloqueado, marque so a zona do chute.',
+                    'Marque no mapa onde a bola saiu: acima, esquerda ou direita do gol.',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: compact ? 11 : 12,
+                    ),
+                  ),
+                ] else if (!goalTargetRequired) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Para Trave e Bloqueado, marque so a zona do chute.',
                     style: TextStyle(
                       color: Colors.grey.shade600,
                       fontSize: compact ? 11 : 12,
@@ -1933,10 +1971,12 @@ Widget _buildMatchHeader({
                 },
                 selectedResult: draft.result,
                 onResultChanged: (value) {
+                  final targetModeChanged = _outsideGoalZonesEnabled(value) !=
+                      _outsideGoalZonesEnabled(draft.result);
                   _leftShotDraft.value = draft.copyWith(
                     result: value,
                     attackContext: value == 'goal' ? draft.attackContext : 'normal',
-                    clearGoalZoneId: !_goalZoneIsRequired(value),
+                    clearGoalZoneId: targetModeChanged || !_goalZoneIsRequired(value),
                   );
                 },
                 selectedAttackContext: draft.attackContext,
@@ -1991,10 +2031,12 @@ Widget _buildMatchHeader({
                 },
                 selectedResult: draft.result,
                 onResultChanged: (value) {
+                  final targetModeChanged = _outsideGoalZonesEnabled(value) !=
+                      _outsideGoalZonesEnabled(draft.result);
                   _rightShotDraft.value = draft.copyWith(
                     result: value,
                     attackContext: value == 'goal' ? draft.attackContext : 'normal',
-                    clearGoalZoneId: !_goalZoneIsRequired(value),
+                    clearGoalZoneId: targetModeChanged || !_goalZoneIsRequired(value),
                   );
                 },
                 selectedAttackContext: draft.attackContext,
@@ -2215,10 +2257,13 @@ Widget _buildMatchHeader({
                         },
                         selectedResult: draft.result,
                         onResultChanged: (value) {
+                          final targetModeChanged =
+                              _outsideGoalZonesEnabled(value) !=
+                                  _outsideGoalZonesEnabled(draft.result);
                           _leftShotDraft.value = draft.copyWith(
                             result: value,
                             attackContext: value == 'goal' ? draft.attackContext : 'normal',
-                            clearGoalZoneId: !_goalZoneIsRequired(value),
+                            clearGoalZoneId: targetModeChanged || !_goalZoneIsRequired(value),
                           );
                         },
                         selectedAttackContext: draft.attackContext,
@@ -2273,10 +2318,13 @@ Widget _buildMatchHeader({
                         },
                         selectedResult: draft.result,
                         onResultChanged: (value) {
+                          final targetModeChanged =
+                              _outsideGoalZonesEnabled(value) !=
+                                  _outsideGoalZonesEnabled(draft.result);
                           _rightShotDraft.value = draft.copyWith(
                             result: value,
                             attackContext: value == 'goal' ? draft.attackContext : 'normal',
-                            clearGoalZoneId: !_goalZoneIsRequired(value),
+                            clearGoalZoneId: targetModeChanged || !_goalZoneIsRequired(value),
                           );
                         },
                         selectedAttackContext: draft.attackContext,

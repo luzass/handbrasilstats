@@ -22,6 +22,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
   final ValueChanged<int> onZoneSelected;
   final ValueChanged<int> onGoalZoneSelected;
   final bool goalZonesEnabled;
+  final bool outsideGoalZonesEnabled;
   final bool enabled;
 
   const ScoutLanceMapSelector({
@@ -31,10 +32,11 @@ class ScoutLanceMapSelector extends StatelessWidget {
     required this.onZoneSelected,
     required this.onGoalZoneSelected,
     required this.goalZonesEnabled,
+    this.outsideGoalZonesEnabled = false,
     this.enabled = true,
   });
 
-  static const Offset _sevenMeterAnchor = Offset(0.50, 0.61);
+  static const Offset _sevenMeterAnchor = Offset(0.50, 0.56);
 
   static const List<List<int>> _goalRows = [
     [1, 4, 7],
@@ -43,16 +45,16 @@ class ScoutLanceMapSelector extends StatelessWidget {
   ];
 
   static const Map<int, Offset> _shotZoneAnchors = {
-    1: Offset(0.13, sixMeterApexY + 0.02),
-    5: Offset(0.87, sixMeterApexY + 0.02),
-    10: Offset(0.17, nineMeterApexY - 0.02),
-    6: Offset(0.83, nineMeterApexY - 0.02),
-    2: Offset(0.33, nineMeterApexY - 0.02),
-    3: Offset(0.50, nineMeterApexY - 0.02),
-    4: Offset(0.67, nineMeterApexY - 0.02),
-    9: Offset(0.18, bottomY - 0.035),
-    8: Offset(0.50, bottomY - 0.03),
-    7: Offset(0.82, bottomY - 0.035),
+    1: Offset(0.12, 0.44),
+    5: Offset(0.88, 0.44),
+    10: Offset(0.15, 0.54),
+    6: Offset(0.85, 0.54),
+    2: Offset(0.32, 0.61),
+    3: Offset(0.50, 0.62),
+    4: Offset(0.68, 0.61),
+    9: Offset(0.20, 0.665),
+    8: Offset(0.50, 0.665),
+    7: Offset(0.80, 0.665),
   };
 
   Widget _shotMarker(
@@ -62,9 +64,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
     double height,
   ) {
     final isSelected = selectedZoneId == zoneId;
-    final markerWidth = (width * 0.13).clamp(44.0, 66.0).toDouble();
-    final markerHeight = (height * 0.052).clamp(28.0, 38.0).toDouble();
-    final fontSize = (markerHeight * 0.34).clamp(10.0, 12.0).toDouble();
+    final markerWidth = (width * 0.10).clamp(30.0, 50.0).toDouble();
+    final markerHeight = (height * 0.040).clamp(18.0, 28.0).toDouble();
+    final fontSize = (markerHeight * 0.42).clamp(8.0, 11.0).toDouble();
 
     return Positioned(
       left: (width * anchor.dx) - (markerWidth / 2),
@@ -82,9 +84,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
 
   Widget _sevenMeterMarker(double width, double height) {
     final isSelected = selectedZoneId == 11;
-    final markerWidth = (width * 0.12).clamp(40.0, 56.0).toDouble();
-    final markerHeight = (height * 0.05).clamp(26.0, 34.0).toDouble();
-    final fontSize = (markerHeight * 0.35).clamp(10.0, 12.0).toDouble();
+    final markerWidth = (width * 0.10).clamp(30.0, 48.0).toDouble();
+    final markerHeight = (height * 0.040).clamp(18.0, 27.0).toDouble();
+    final fontSize = (markerHeight * 0.42).clamp(8.0, 11.0).toDouble();
 
     return Positioned(
       left: (width * _sevenMeterAnchor.dx) - (markerWidth / 2),
@@ -104,36 +106,94 @@ class ScoutLanceMapSelector extends StatelessWidget {
     final top = height * 0.06;
     final goalWidth = width * 0.72;
     final goalHeight = height * 0.30;
+    final outsideWidth = width * 0.11;
+    final outsideTopHeight = height * 0.045;
+    final innerCellWidth = goalWidth / 3;
+    final innerCellHeight = goalHeight / 3;
+
+    Widget cell({
+      required int goalZoneId,
+      required double cellLeft,
+      required double cellTop,
+      required double cellWidth,
+      required double cellHeight,
+      required bool enabledCell,
+    }) {
+      return Positioned(
+        left: cellLeft,
+        top: cellTop,
+        width: cellWidth,
+        height: cellHeight,
+        child: _GoalCell(
+          goalZoneId: goalZoneId,
+          isSelected: selectedGoalZoneId == goalZoneId,
+          enabled: enabled && enabledCell,
+          onTap: () => onGoalZoneSelected(goalZoneId),
+        ),
+      );
+    }
 
     return Positioned(
-      left: left,
-      top: top,
-      width: goalWidth,
-      height: goalHeight,
-      child: Opacity(
-        opacity: goalZonesEnabled ? 1 : 0.40,
-        child: Column(
-          children: _goalRows
-              .map(
-                (row) => Expanded(
-                  child: Row(
-                    children: row
-                        .map(
-                          (goalZoneId) => Expanded(
-                            child: _GoalCell(
-                              goalZoneId: goalZoneId,
-                              isSelected: selectedGoalZoneId == goalZoneId,
-                              enabled: enabled && goalZonesEnabled,
-                              onTap: () => onGoalZoneSelected(goalZoneId),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
+      left: left - outsideWidth,
+      top: top - outsideTopHeight,
+      width: goalWidth + (outsideWidth * 2),
+      height: goalHeight + outsideTopHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          if (outsideGoalZonesEnabled) ...[
+            for (var column = 0; column < 5; column++)
+              cell(
+                goalZoneId: 10 + column,
+                cellLeft: column == 0
+                    ? 0
+                    : column == 4
+                        ? outsideWidth + goalWidth
+                        : outsideWidth + ((column - 1) * innerCellWidth),
+                cellTop: 0,
+                cellWidth: column == 0 || column == 4
+                    ? outsideWidth
+                    : innerCellWidth,
+                cellHeight: outsideTopHeight,
+                enabledCell: true,
+              ),
+            for (var row = 0; row < 3; row++)
+              cell(
+                goalZoneId: 15 + row,
+                cellLeft: 0,
+                cellTop: outsideTopHeight + (row * innerCellHeight),
+                cellWidth: outsideWidth,
+                cellHeight: innerCellHeight,
+                enabledCell: true,
+              ),
+            for (var row = 0; row < 3; row++)
+              cell(
+                goalZoneId: 18 + row,
+                cellLeft: outsideWidth + goalWidth,
+                cellTop: outsideTopHeight + (row * innerCellHeight),
+                cellWidth: outsideWidth,
+                cellHeight: innerCellHeight,
+                enabledCell: true,
+              ),
+          ],
+          Opacity(
+            opacity: goalZonesEnabled ? 1 : 0.40,
+            child: Stack(
+              children: [
+                for (var row = 0; row < _goalRows.length; row++)
+                  for (var column = 0; column < _goalRows[row].length; column++)
+                    cell(
+                      goalZoneId: _goalRows[row][column],
+                      cellLeft: outsideWidth + (column * innerCellWidth),
+                      cellTop: outsideTopHeight + (row * innerCellHeight),
+                      cellWidth: innerCellWidth,
+                      cellHeight: innerCellHeight,
+                      enabledCell: goalZonesEnabled,
+                    ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
