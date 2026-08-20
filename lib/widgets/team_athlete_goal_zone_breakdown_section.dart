@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/match_goal_zone_breakdown_model.dart';
 import '../repositories/team_athlete_goal_zone_breakdown_repository.dart';
 import 'goal_zone_heatmap_widget.dart';
+import 'shot_zone_filter_map.dart';
 
 class TeamAthleteGoalZoneBreakdownSection extends StatefulWidget {
   final String teamId;
@@ -31,21 +32,6 @@ class _TeamAthleteGoalZoneBreakdownSectionState
   String? _errorMessage;
   int? _selectedShotZoneId;
   List<MatchGoalZoneBreakdownModel> _breakdown = [];
-
-  final List<Map<String, dynamic>> _shotZones = const [
-    {'id': null, 'label': 'Geral'},
-    {'id': 1, 'label': 'Z01'},
-    {'id': 2, 'label': 'Z02'},
-    {'id': 3, 'label': 'Z03'},
-    {'id': 4, 'label': 'Z04'},
-    {'id': 5, 'label': 'Z05'},
-    {'id': 6, 'label': 'Z06'},
-    {'id': 7, 'label': 'Z07'},
-    {'id': 8, 'label': 'Z08'},
-    {'id': 9, 'label': 'Z09'},
-    {'id': 10, 'label': 'Z10'},
-    {'id': 11, 'label': '7M'},
-  ];
 
   @override
   void initState() {
@@ -133,22 +119,18 @@ class _TeamAthleteGoalZoneBreakdownSectionState
             ),
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<int?>(
-            initialValue: _selectedShotZoneId,
-            decoration: const InputDecoration(
-              labelText: 'Zona de chute',
-              border: OutlineInputBorder(),
-              isDense: true,
+          Text(
+            'Zona de chute',
+            style: TextStyle(
+              color: Colors.blueGrey.shade700,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
             ),
-            items: _shotZones
-                .map(
-                  (e) => DropdownMenuItem<int?>(
-                    value: e['id'] as int?,
-                    child: Text(e['label'] as String),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) async {
+          ),
+          const SizedBox(height: 8),
+          ShotZoneFilterMap(
+            selectedZoneId: _selectedShotZoneId,
+            onSelected: (value) async {
               setState(() {
                 _selectedShotZoneId = value;
               });
