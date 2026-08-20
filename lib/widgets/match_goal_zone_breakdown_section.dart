@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/match_goal_zone_breakdown_model.dart';
 import '../repositories/match_goal_zone_breakdown_repository.dart';
-import 'goal_zone_heatmap_widget.dart';
-import 'shot_zone_filter_map.dart';
+import 'shot_goal_heatmap_court_widget.dart';
 
 class MatchGoalZoneBreakdownSection extends StatefulWidget {
   final String matchId;
@@ -128,16 +127,6 @@ class _MatchGoalZoneBreakdownSectionState
             ),
           ),
           const SizedBox(height: 8),
-          ShotZoneFilterMap(
-            selectedZoneId: _selectedShotZoneId,
-            onSelected: (value) async {
-              setState(() {
-                _selectedShotZoneId = value;
-              });
-              await _loadBreakdown();
-            },
-          ),
-          const SizedBox(height: 14),
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else if (_errorMessage != null)
@@ -145,9 +134,16 @@ class _MatchGoalZoneBreakdownSectionState
           else if (_breakdown.isEmpty)
             const Text('Nenhum dado encontrado para este filtro.')
           else ...[
-            GoalZoneHeatmapWidget(
+            ShotGoalHeatmapCourtWidget(
               breakdown: _breakdown,
               isGoalkeeper: widget.isGoalkeeper,
+              selectedShotZoneId: _selectedShotZoneId,
+              onShotZoneSelected: (value) async {
+                setState(() {
+                  _selectedShotZoneId = value;
+                });
+                await _loadBreakdown();
+              },
             ),
             const SizedBox(height: 12),
             Wrap(
