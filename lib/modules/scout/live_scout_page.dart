@@ -1753,7 +1753,7 @@ Widget _buildMatchHeader({
                   child: Center(
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxWidth: compact ? 360 : 560,
+                        maxWidth: compact ? 460 : 620,
                       ),
                       child: ScoutLanceMapSelector(
                         selectedZoneId: selectedZoneId,

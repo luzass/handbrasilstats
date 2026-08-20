@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 class ScoutLanceMapSelector extends StatelessWidget {
-  static const double _boardAspectRatio = 0.88;
+  static const double _boardAspectRatio = 1.15;
 
   // ----- shared court geometry -----
   // Single source of truth for where the goal line, 6m area and 9m line
@@ -15,7 +15,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
   static const double nineMeterExtra = 0.12; // extra depth of the 9m line, below the 6m apex
   static const double sixMeterApexY = goalLineY + sixMeterDepth; // ~0.48
   static const double nineMeterApexY = sixMeterApexY + nineMeterExtra; // ~0.61
-  static const double bottomY = 0.69;
+  static const double bottomY = 0.77;
 
   final int? selectedZoneId;
   final int? selectedGoalZoneId;
@@ -52,9 +52,9 @@ class ScoutLanceMapSelector extends StatelessWidget {
     2: Offset(0.28, 0.58),
     3: Offset(0.50, 0.64),
     4: Offset(0.72, 0.58),
-    9: Offset(0.22, 0.69),
-    8: Offset(0.50, 0.69),
-    7: Offset(0.78, 0.69),
+    9: Offset(0.22, 0.72),
+    8: Offset(0.50, 0.72),
+    7: Offset(0.78, 0.72),
   };
 
   Widget _shotMarker(
@@ -64,7 +64,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
     double height,
   ) {
     final isSelected = selectedZoneId == zoneId;
-    final markerWidth = (width * 0.13).clamp(42.0, 74.0).toDouble();
+    final markerWidth = (width * 0.115).clamp(42.0, 74.0).toDouble();
     final markerHeight = (height * 0.054).clamp(24.0, 40.0).toDouble();
     final fontSize = (markerHeight * 0.46).clamp(11.0, 17.0).toDouble();
 
@@ -84,7 +84,7 @@ class ScoutLanceMapSelector extends StatelessWidget {
 
   Widget _sevenMeterMarker(double width, double height) {
     final isSelected = selectedZoneId == 11;
-    final markerWidth = (width * 0.13).clamp(42.0, 74.0).toDouble();
+    final markerWidth = (width * 0.115).clamp(42.0, 74.0).toDouble();
     final markerHeight = (height * 0.054).clamp(24.0, 40.0).toDouble();
     final fontSize = (markerHeight * 0.46).clamp(11.0, 17.0).toDouble();
 
