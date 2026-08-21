@@ -7,6 +7,7 @@ import 'admin_competitions_page.dart';
 import '../scout/scout_match_list_page.dart';
 import '../scout/standalone_scout_page.dart';
 import '../statistics/match_statistics_list_page.dart';
+import '../statistics/standalone_match_statistics_list_page.dart';
 import '../statistics/team_statistics_list_page.dart';
 import 'match_list_page.dart';
 import 'player_list_page.dart';
@@ -113,6 +114,19 @@ class AdminHomePage extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => const MatchStatisticsListPage(),
+            ),
+          );
+        },
+      ),
+      _AdminAction(
+        title: 'Estatísticas Avulsas',
+        subtitle: 'Análise das partidas sem cadastro de elenco',
+        icon: Icons.query_stats_outlined,
+        accent: const Color(0xFF2563EB),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const StandaloneMatchStatisticsListPage(),
             ),
           );
         },

@@ -126,7 +126,85 @@ class StandaloneScoutRepository {
     }).eq('id', matchId);
   }
 
+  Future<void> finishMatch({
+    required String matchId,
+    required int homeScore,
+    required int awayScore,
+  }) async {
+    await _supabase.from('standalone_matches').update({
+      'home_score': homeScore,
+      'away_score': awayScore,
+      'status': 'finished',
+      'ended_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', matchId);
+  }
+
   Future<void> deleteEvent(String eventId) async {
     await _supabase.from('standalone_events').delete().eq('id', eventId);
+  }
+
+  Future<List<Map<String, dynamic>>> getMatches() async {
+    final response = await _supabase
+        .from('standalone_matches')
+        .select()
+        .order('created_at', ascending: false);
+
+    return (response as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getTeamStats(String matchId) async {
+    final response = await _supabase
+        .from('v_standalone_team_stats')
+        .select()
+        .eq('standalone_match_id', matchId)
+        .order('team_name');
+
+    return (response as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getPlayerStats(String matchId) async {
+    final response = await _supabase
+        .from('v_standalone_player_stats')
+        .select()
+        .eq('standalone_match_id', matchId)
+        .order('team_name')
+        .order('player_number');
+
+    return (response as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getGoalkeeperStats(String matchId) async {
+    final response = await _supabase
+        .from('v_standalone_goalkeeper_stats')
+        .select()
+        .eq('standalone_match_id', matchId)
+        .order('team_name')
+        .order('goalkeeper_number');
+
+    return (response as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getEvents(String matchId) async {
+    final response = await _supabase
+        .from('standalone_events')
+        .select('''
+          *,
+          standalone_team:standalone_teams!standalone_events_standalone_team_id_fkey(name)
+        ''')
+        .eq('standalone_match_id', matchId)
+        .order('sequence_order', ascending: false);
+
+    return (response as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
   }
 }

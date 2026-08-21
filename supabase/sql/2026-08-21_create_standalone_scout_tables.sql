@@ -163,3 +163,22 @@ group by
   event.standalone_team_id,
   team.name,
   event.player_number;
+
+create or replace view public.v_standalone_goalkeeper_stats as
+select
+  event.standalone_match_id,
+  event.opponent_standalone_team_id as standalone_team_id,
+  opponent.name as team_name,
+  event.goalkeeper_number,
+  count(*) as saves
+from public.standalone_events event
+join public.standalone_teams opponent
+  on opponent.id = event.opponent_standalone_team_id
+where event.event_kind = 'shot'
+  and event.event_type = 'saved'
+  and event.goalkeeper_number is not null
+group by
+  event.standalone_match_id,
+  event.opponent_standalone_team_id,
+  opponent.name,
+  event.goalkeeper_number;

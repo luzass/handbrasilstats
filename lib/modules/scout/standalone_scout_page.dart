@@ -7,6 +7,7 @@ import '../../repositories/standalone_scout_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/scout_lance_map_selector.dart';
+import '../statistics/standalone_match_statistics_detail_page.dart';
 
 int _outsideGoalZoneLabelNumber(int goalZoneId) {
   if (goalZoneId >= 11 && goalZoneId <= 13) return goalZoneId - 10;
@@ -46,6 +47,8 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
   String? _awayStandaloneTeamId;
   String? _errorMessage;
   bool _isPreparingMatch = false;
+  bool _isFinishingMatch = false;
+  bool _isMatchFinished = false;
 
   _ShotDraft _homeDraft = const _ShotDraft();
   _ShotDraft _awayDraft = const _ShotDraft();
@@ -109,6 +112,7 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
         _awayStandaloneTeamId = awayTeam['id'] as String;
         _matchId = match['id'] as String;
         _isConfigured = true;
+        _isMatchFinished = false;
         _isPreparingMatch = false;
       });
 
@@ -124,6 +128,8 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
   }
 
   void _toggleClock() {
+    if (_isMatchFinished) return;
+
     if (_isClockRunning) {
       _clockTimer?.cancel();
       setState(() {
@@ -581,6 +587,84 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
     );
   }
 
+  Future<void> _finishMatch() async {
+    final matchId = _matchId;
+    if (matchId == null) {
+      setState(() {
+        _errorMessage = 'A partida avulsa ainda não foi criada no Supabase.';
+      });
+      return;
+    }
+
+    final hasPendingEvents = _events.any((event) => !event.isSynced);
+    final hasSyncErrors = _events.any((event) => event.syncError != null);
+
+    if (hasPendingEvents || hasSyncErrors) {
+      setState(() {
+        _errorMessage = hasSyncErrors
+            ? 'Tem evento com erro de sincronização. Confira o histórico antes de finalizar.'
+            : 'Ainda tem evento salvando. Aguarde alguns segundos antes de finalizar.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isFinishingMatch = true;
+      _errorMessage = null;
+    });
+
+    try {
+      _clockTimer?.cancel();
+      await _repository.finishMatch(
+        matchId: matchId,
+        homeScore: _homeScore,
+        awayScore: _awayScore,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isClockRunning = false;
+        _isMatchFinished = true;
+        _isFinishingMatch = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Partida avulsa finalizada e salva.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Erro ao finalizar partida avulsa: $e';
+        _isFinishingMatch = false;
+      });
+    }
+  }
+
+  void _openCurrentMatchStats() {
+    final matchId = _matchId;
+    if (matchId == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => StandaloneMatchStatisticsDetailPage(
+          match: {
+            'id': matchId,
+            'home_team_name': _homeName,
+            'away_team_name': _awayName,
+            'home_score': _homeScore,
+            'away_score': _awayScore,
+            'status': _isMatchFinished ? 'finished' : 'in_progress',
+            'created_at': DateTime.now().toIso8601String(),
+          },
+        ),
+      ),
+    );
+  }
+
   void _deletePersistedEvent(_StandaloneScoutEvent event) {
     if (event.id != null) {
       unawaited(_repository.deleteEvent(event.id!));
@@ -630,6 +714,8 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
     setState(() {
       _isConfigured = false;
       _isPreparingMatch = false;
+      _isFinishingMatch = false;
+      _isMatchFinished = false;
       _isClockRunning = false;
       _currentMinute = 0;
       _currentSecond = 0;
@@ -644,6 +730,7 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
       _awayDraft = const _ShotDraft();
       _events.clear();
       _deletedLocalEventKeys.clear();
+      _latestScoresByMatch.clear();
       _homePlayerController.clear();
       _awayPlayerController.clear();
       _homeGoalkeeperController.clear();
@@ -892,7 +979,7 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
               runSpacing: 8,
               children: [
                 FilledButton.icon(
-                  onPressed: _toggleClock,
+                  onPressed: _isMatchFinished ? null : _toggleClock,
                   icon: Icon(_isClockRunning ? Icons.pause : Icons.play_arrow),
                   label: Text(_isClockRunning ? 'Pause (P)' : 'Play (P)'),
                 ),
@@ -905,6 +992,24 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
                   onPressed: _clearMatch,
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text('Nova partida'),
+                ),
+                FilledButton.icon(
+                  onPressed: _isFinishingMatch || _isMatchFinished
+                      ? null
+                      : _finishMatch,
+                  icon: const Icon(Icons.flag_circle_outlined),
+                  label: Text(
+                    _isMatchFinished
+                        ? 'Partida finalizada'
+                        : _isFinishingMatch
+                            ? 'Finalizando...'
+                            : 'Finalizar partida',
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _matchId == null ? null : _openCurrentMatchStats,
+                  icon: const Icon(Icons.insights_outlined),
+                  label: const Text('Ver estatísticas'),
                 ),
               ],
             ),
