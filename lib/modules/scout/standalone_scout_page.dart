@@ -8,6 +8,12 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/scout_lance_map_selector.dart';
 
+int _outsideGoalZoneLabelNumber(int goalZoneId) {
+  if (goalZoneId >= 11 && goalZoneId <= 13) return goalZoneId - 10;
+  if (goalZoneId >= 15 && goalZoneId <= 17) return goalZoneId - 11;
+  return goalZoneId - 11;
+}
+
 class StandaloneScoutPage extends StatefulWidget {
   const StandaloneScoutPage({super.key});
 
@@ -225,12 +231,12 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
     return result == 'goal' || result == 'saved' || result == 'out';
   }
 
-  bool _insideGoalZonesEnabled(String? result) {
-    return result == 'goal' || result == 'saved';
+  bool _isInsideGoalZone(int? goalZoneId) {
+    return goalZoneId != null && goalZoneId >= 1 && goalZoneId <= 9;
   }
 
-  bool _outsideGoalZonesEnabled(String? result) {
-    return result == 'out';
+  bool _isOutsideGoalZone(int? goalZoneId) {
+    return goalZoneId != null && goalZoneId >= 11 && goalZoneId <= 20;
   }
 
   void _updateDraft(String side, _ShotDraft draft) {
@@ -275,11 +281,6 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
       draft.copyWith(
         result: newResult,
         setResult: true,
-        clearGoalZone: !_needsGoalTarget(newResult) ||
-            _outsideGoalZonesEnabled(newResult) !=
-                _outsideGoalZonesEnabled(draft.result) ||
-            _insideGoalZonesEnabled(newResult) !=
-                _insideGoalZonesEnabled(draft.result),
       ),
     );
   }
@@ -331,6 +332,23 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
         _errorMessage = draft.result == 'out'
             ? 'Marque onde a bola saiu em relação ao gol.'
             : 'Marque a zona no gol.';
+      });
+      return;
+    }
+
+    if ((draft.result == 'goal' || draft.result == 'saved') &&
+        !_isInsideGoalZone(draft.goalZoneId)) {
+      setState(() {
+        _errorMessage =
+            'Para Gol ou Defesa, selecione uma região dentro do gol (G01 a G09).';
+      });
+      return;
+    }
+
+    if (draft.result == 'out' && !_isOutsideGoalZone(draft.goalZoneId)) {
+      setState(() {
+        _errorMessage =
+            'Para Fora, selecione uma região fora do gol (F01 a F09).';
       });
       return;
     }
@@ -955,8 +973,8 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
               onZoneSelected: (zoneId) => _selectShotZone(side, zoneId),
               onGoalZoneSelected: (goalZoneId) =>
                   _selectGoalZone(side, goalZoneId),
-              goalZonesEnabled: _insideGoalZonesEnabled(draft.result),
-              outsideGoalZonesEnabled: _outsideGoalZonesEnabled(draft.result),
+              goalZonesEnabled: true,
+              outsideGoalZonesEnabled: true,
             ),
             const SizedBox(height: 12),
             TextField(
@@ -1269,7 +1287,7 @@ class _StandaloneScoutEvent {
     if (zoneId <= 9) {
       return 'G${zoneId.toString().padLeft(2, '0')}';
     }
-    return 'F${(zoneId - 10).toString().padLeft(2, '0')}';
+    return 'F${_outsideGoalZoneLabelNumber(zoneId).toString().padLeft(2, '0')}';
   }
 }
 
@@ -1421,7 +1439,7 @@ class _DraftSummary extends StatelessWidget {
         ? 'Alvo: -'
         : draft.goalZoneId! <= 9
             ? 'Alvo: G${draft.goalZoneId.toString().padLeft(2, '0')}'
-            : 'Alvo: F${(draft.goalZoneId! - 10).toString().padLeft(2, '0')}';
+            : 'Alvo: F${_outsideGoalZoneLabelNumber(draft.goalZoneId!).toString().padLeft(2, '0')}';
     final result =
         draft.result == null ? 'Evento: -' : 'Evento: ${resultLabel(draft.result!)}';
 
