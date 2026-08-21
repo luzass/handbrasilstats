@@ -1084,7 +1084,11 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
             const SizedBox(height: 12),
             TextField(
               controller: playerController,
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(
+                signed: false,
+                decimal: false,
+              ),
+              textInputAction: TextInputAction.done,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(
                 labelText: 'Nº da camisa',
@@ -1132,7 +1136,11 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
               const SizedBox(height: 12),
               TextField(
                 controller: goalkeeperController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(
+                  signed: false,
+                  decimal: false,
+                ),
+                textInputAction: TextInputAction.done,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: InputDecoration(
                   labelText: 'Nº goleiro adversário ($opponentName)',
