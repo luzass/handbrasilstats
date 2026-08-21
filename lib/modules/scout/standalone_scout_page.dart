@@ -36,7 +36,7 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
 
   _ShotDraft _homeDraft = const _ShotDraft();
   _ShotDraft _awayDraft = const _ShotDraft();
-  final List<_StandaloneShotEvent> _events = [];
+  final List<_StandaloneScoutEvent> _events = [];
 
   @override
   void dispose() {
@@ -143,6 +143,35 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
       default:
         return result;
     }
+  }
+
+  String _teamEventLabel(String eventType) {
+    switch (eventType) {
+      case 'pass_error':
+        return 'Erro de passe';
+      case 'technical_error':
+        return 'Erro técnico';
+      default:
+        return eventType;
+    }
+  }
+
+  int _teamAttackCount(String side) {
+    return _events.where((event) {
+      return event.side == side && event.countsAsAttack;
+    }).length;
+  }
+
+  int _teamShotCount(String side) {
+    return _events.where((event) {
+      return event.side == side && event.isShot;
+    }).length;
+  }
+
+  int _teamErrorCount(String side) {
+    return _events.where((event) {
+      return event.side == side && event.isTeamEvent;
+    }).length;
   }
 
   bool _needsGoalTarget(String? result) {
@@ -265,7 +294,8 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
 
       _events.insert(
         0,
-        _StandaloneShotEvent(
+        _StandaloneScoutEvent(
+          kind: 'shot',
           side: side,
           teamName: side == 'home' ? _homeName : _awayName,
           playerNumber: playerNumber,
@@ -288,6 +318,26 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
       }
       playerController.clear();
       goalkeeperController.clear();
+      _errorMessage = null;
+    });
+  }
+
+  void _saveTeamEvent(String side, String eventType) {
+    setState(() {
+      _events.insert(
+        0,
+        _StandaloneScoutEvent(
+          kind: 'team',
+          side: side,
+          teamName: side == 'home' ? _homeName : _awayName,
+          teamEventType: eventType,
+          period: _period,
+          minute: _currentMinute,
+          second: _currentSecond,
+          homeScoreAfter: _homeScore,
+          awayScoreAfter: _awayScore,
+        ),
+      );
       _errorMessage = null;
     });
   }
@@ -626,6 +676,17 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
                   ),
             ),
             const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _StatPill(label: 'Ataques', value: _teamAttackCount(side)),
+                _StatPill(label: 'Arremessos', value: _teamShotCount(side)),
+                _StatPill(label: 'Erros', value: _teamErrorCount(side)),
+              ],
+            ),
+            const SizedBox(height: 8),
             ScoutLanceMapSelector(
               selectedZoneId: draft.zoneId,
               selectedGoalZoneId: draft.goalZoneId,
@@ -702,6 +763,31 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
               icon: const Icon(Icons.save_outlined),
               label: const Text('Salvar lance'),
             ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text(
+              'Eventos do time',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _TeamEventButton(
+                  label: 'Erro de passe',
+                  icon: Icons.compare_arrows,
+                  onTap: () => _saveTeamEvent(side, 'pass_error'),
+                ),
+                _TeamEventButton(
+                  label: 'Erro técnico',
+                  icon: Icons.warning_amber_outlined,
+                  onTap: () => _saveTeamEvent(side, 'technical_error'),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -725,12 +811,12 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
                         ),
                   ),
                 ),
-                Text('${_events.length} lances'),
+                Text('${_events.length} eventos'),
               ],
             ),
             const SizedBox(height: 8),
             if (_events.isEmpty)
-              const Text('Nenhum lance salvo ainda.')
+              const Text('Nenhum evento salvo ainda.')
             else
               ListView.separated(
                 shrinkWrap: true,
@@ -742,21 +828,32 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
                   return ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: CircleAvatar(
-                      backgroundColor:
-                          AppThemeColors.primary.withValues(alpha: 0.12),
-                      foregroundColor: AppThemeColors.primary,
-                      child: Text(event.playerNumber),
+                      backgroundColor: event.isShot
+                          ? AppThemeColors.primary.withValues(alpha: 0.12)
+                          : AppThemeColors.secondary.withValues(alpha: 0.16),
+                      foregroundColor: event.isShot
+                          ? AppThemeColors.primary
+                          : AppThemeColors.secondary,
+                      child: event.isShot
+                          ? Text(event.playerNumber!)
+                          : const Icon(Icons.error_outline),
                     ),
                     title: Text(
-                      '${event.teamName} - ${_resultLabel(event.result)}',
+                      event.isShot
+                          ? '${event.teamName} - ${_resultLabel(event.result!)}'
+                          : '${event.teamName} - ${_teamEventLabel(event.teamEventType!)}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     subtitle: Text(
-                      '${_periodLabel(event.period)} ${event.clockLabel} | '
-                      'Z${event.shotZoneId.toString().padLeft(2, '0')}'
-                      '${event.goalTargetLabel == null ? '' : ' -> ${event.goalTargetLabel}'}'
-                      '${event.goalkeeperNumber == null ? '' : ' | Goleiro ${event.goalkeeperNumber}'}'
-                      ' | Placar ${event.homeScoreAfter} x ${event.awayScoreAfter}',
+                      event.isShot
+                          ? '${_periodLabel(event.period)} ${event.clockLabel} | '
+                              'Z${event.shotZoneId.toString().padLeft(2, '0')}'
+                              '${event.goalTargetLabel == null ? '' : ' -> ${event.goalTargetLabel}'}'
+                              '${event.goalkeeperNumber == null ? '' : ' | Goleiro ${event.goalkeeperNumber}'}'
+                              ' | Placar ${event.homeScoreAfter} x ${event.awayScoreAfter}'
+                          : '${_periodLabel(event.period)} ${event.clockLabel} | '
+                              'Ataque encerrado por ${_teamEventLabel(event.teamEventType!).toLowerCase()}'
+                              ' | Placar ${event.homeScoreAfter} x ${event.awayScoreAfter}',
                     ),
                     trailing: IconButton(
                       tooltip: 'Remover lance',
@@ -800,13 +897,15 @@ class _ShotDraft {
   }
 }
 
-class _StandaloneShotEvent {
+class _StandaloneScoutEvent {
+  final String kind;
   final String side;
   final String teamName;
-  final String playerNumber;
+  final String? playerNumber;
   final String? goalkeeperNumber;
-  final String result;
-  final int shotZoneId;
+  final String? result;
+  final String? teamEventType;
+  final int? shotZoneId;
   final int? goalZoneId;
   final String period;
   final int minute;
@@ -814,14 +913,16 @@ class _StandaloneShotEvent {
   final int homeScoreAfter;
   final int awayScoreAfter;
 
-  const _StandaloneShotEvent({
+  const _StandaloneScoutEvent({
+    required this.kind,
     required this.side,
     required this.teamName,
-    required this.playerNumber,
-    required this.goalkeeperNumber,
-    required this.result,
-    required this.shotZoneId,
-    required this.goalZoneId,
+    this.playerNumber,
+    this.goalkeeperNumber,
+    this.result,
+    this.teamEventType,
+    this.shotZoneId,
+    this.goalZoneId,
     required this.period,
     required this.minute,
     required this.second,
@@ -834,6 +935,12 @@ class _StandaloneShotEvent {
     final seconds = second.toString().padLeft(2, '0');
     return '$minutes:$seconds';
   }
+
+  bool get isShot => kind == 'shot';
+
+  bool get isTeamEvent => kind == 'team';
+
+  bool get countsAsAttack => isShot || isTeamEvent;
 
   String? get goalTargetLabel {
     final zoneId = goalZoneId;
@@ -888,6 +995,35 @@ class _PeriodChip extends StatelessWidget {
   }
 }
 
+class _StatPill extends StatelessWidget {
+  final String label;
+  final int value;
+
+  const _StatPill({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppThemeColors.primarySoft,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label $value',
+        style: const TextStyle(
+          color: AppThemeColors.ink,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
 class _ResultButton extends StatelessWidget {
   final String label;
   final bool selected;
@@ -913,6 +1049,34 @@ class _ResultButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18),
         ),
         child: Text(label),
+      ),
+    );
+  }
+}
+
+class _TeamEventButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _TeamEventButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 38,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          minimumSize: Size.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+        ),
       ),
     );
   }
