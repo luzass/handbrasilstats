@@ -180,6 +180,18 @@ class StandaloneScoutRepository {
         .toList();
   }
 
+  Future<List<Map<String, dynamic>>> getPlayerStatsTotal() async {
+    final response = await _supabase
+        .from('v_standalone_player_stats_total')
+        .select()
+        .order('team_name')
+        .order('player_number');
+
+    return (response as List)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+  }
+
   Future<List<Map<String, dynamic>>> getGoalkeeperStats(String matchId) async {
     final response = await _supabase
         .from('v_standalone_goalkeeper_stats')

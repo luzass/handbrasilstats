@@ -7,6 +7,7 @@ grant select, insert, update on public.standalone_matches to authenticated;
 grant select, insert, delete on public.standalone_events to authenticated;
 grant select on public.v_standalone_team_stats to authenticated;
 grant select on public.v_standalone_player_stats to authenticated;
+grant select on public.v_standalone_player_stats_total to authenticated;
 grant select on public.v_standalone_goalkeeper_stats to authenticated;
 
 do $$

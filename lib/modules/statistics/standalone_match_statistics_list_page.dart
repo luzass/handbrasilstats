@@ -20,8 +20,11 @@ class _StandaloneMatchStatisticsListPageState
 
   bool _isLoading = true;
   String? _errorMessage;
+  String _selectedView = 'matches';
   List<Map<String, dynamic>> _allMatches = [];
   List<Map<String, dynamic>> _filteredMatches = [];
+  List<Map<String, dynamic>> _allPlayers = [];
+  List<Map<String, dynamic>> _filteredPlayers = [];
 
   @override
   void initState() {
@@ -38,13 +41,20 @@ class _StandaloneMatchStatisticsListPageState
 
   Future<void> _loadMatches() async {
     try {
-      final matches = await _repository.getMatches();
+      final results = await Future.wait([
+        _repository.getMatches(),
+        _repository.getPlayerStatsTotal(),
+      ]);
+      final matches = results[0];
+      final players = results[1];
 
       if (!mounted) return;
 
       setState(() {
         _allMatches = matches;
         _filteredMatches = matches;
+        _allPlayers = players;
+        _filteredPlayers = players;
         _isLoading = false;
       });
     } catch (e) {
@@ -63,6 +73,7 @@ class _StandaloneMatchStatisticsListPageState
     setState(() {
       if (query.isEmpty) {
         _filteredMatches = _allMatches;
+        _filteredPlayers = _allPlayers;
         return;
       }
 
@@ -72,6 +83,12 @@ class _StandaloneMatchStatisticsListPageState
         final awayName =
             (match['away_team_name'] as String? ?? '').toLowerCase();
         return homeName.contains(query) || awayName.contains(query);
+      }).toList();
+
+      _filteredPlayers = _allPlayers.where((player) {
+        final teamName = (player['team_name'] as String? ?? '').toLowerCase();
+        final number = player['player_number']?.toString().toLowerCase() ?? '';
+        return teamName.contains(query) || number.contains(query);
       }).toList();
     });
   }
@@ -206,6 +223,111 @@ class _StandaloneMatchStatisticsListPageState
     );
   }
 
+  String _fmt(dynamic value) => '${value ?? 0}';
+
+  String _formatPercent(dynamic value) {
+    if (value == null) return '0%';
+    final parsed = num.tryParse(value.toString()) ?? 0;
+    return '${parsed.toStringAsFixed(1)}%';
+  }
+
+  Widget _buildViewSwitch() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: SegmentedButton<String>(
+        segments: const [
+          ButtonSegment(
+            value: 'matches',
+            label: Text('Partidas'),
+            icon: Icon(Icons.sports_handball),
+          ),
+          ButtonSegment(
+            value: 'players',
+            label: Text('Jogadores'),
+            icon: Icon(Icons.numbers),
+          ),
+        ],
+        selected: {_selectedView},
+        onSelectionChanged: (selection) {
+          setState(() {
+            _selectedView = selection.first;
+          });
+        },
+      ),
+    );
+  }
+
+  Widget _buildPlayerStatsTable() {
+    if (_filteredPlayers.isEmpty) {
+      return const Center(
+        child: Text('Nenhum jogador avulso encontrado.'),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('Time')),
+                  DataColumn(label: Text('Camisa')),
+                  DataColumn(label: Text('Jogos')),
+                  DataColumn(label: Text('Chutes')),
+                  DataColumn(label: Text('Gols')),
+                  DataColumn(label: Text('Trave')),
+                  DataColumn(label: Text('Fora')),
+                  DataColumn(label: Text('Defesa')),
+                  DataColumn(label: Text('% Gol')),
+                ],
+                rows: _filteredPlayers.map((player) {
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(player['team_name'] as String? ?? '-')),
+                      DataCell(Text(player['player_number']?.toString() ?? '-')),
+                      DataCell(Text(_fmt(player['matches']))),
+                      DataCell(Text(_fmt(player['shots']))),
+                      DataCell(Text(_fmt(player['goals']))),
+                      DataCell(Text(_fmt(player['posts']))),
+                      DataCell(Text(_fmt(player['outs']))),
+                      DataCell(Text(_fmt(player['saved_shots']))),
+                      DataCell(Text(_formatPercent(player['goal_percentage']))),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMatchesList() {
+    if (_filteredMatches.isEmpty) {
+      return const Center(
+        child: Text('Nenhuma partida avulsa encontrada.'),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      itemCount: _filteredMatches.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildMatchCard(
+            _filteredMatches[index],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -224,30 +346,16 @@ class _StandaloneMatchStatisticsListPageState
                         child: TextField(
                           controller: _searchController,
                           decoration: const InputDecoration(
-                            labelText: 'Pesquisar por time',
+                            labelText: 'Pesquisar por time ou camisa',
                             prefixIcon: Icon(Icons.search),
                           ),
                         ),
                       ),
+                      _buildViewSwitch(),
                       Expanded(
-                        child: _filteredMatches.isEmpty
-                            ? const Center(
-                                child:
-                                    Text('Nenhuma partida avulsa encontrada.'),
-                              )
-                            : ListView.builder(
-                                padding:
-                                    const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                itemCount: _filteredMatches.length,
-                                itemBuilder: (context, index) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: _buildMatchCard(
-                                      _filteredMatches[index],
-                                    ),
-                                  );
-                                },
-                              ),
+                        child: _selectedView == 'matches'
+                            ? _buildMatchesList()
+                            : _buildPlayerStatsTable(),
                       ),
                     ],
                   ),

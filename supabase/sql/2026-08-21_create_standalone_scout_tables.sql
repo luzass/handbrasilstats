@@ -164,6 +164,33 @@ group by
   team.name,
   event.player_number;
 
+create or replace view public.v_standalone_player_stats_total as
+select
+  event.standalone_team_id,
+  team.name as team_name,
+  event.player_number,
+  count(distinct event.standalone_match_id) as matches,
+  count(*) as shots,
+  count(*) filter (where event.event_type = 'goal') as goals,
+  count(*) filter (where event.event_type = 'post') as posts,
+  count(*) filter (where event.event_type = 'out') as outs,
+  count(*) filter (where event.event_type = 'saved') as saved_shots,
+  round(
+    (
+      count(*) filter (where event.event_type = 'goal')::numeric
+      / nullif(count(*), 0)
+    ) * 100,
+    1
+  ) as goal_percentage
+from public.standalone_events event
+join public.standalone_teams team
+  on team.id = event.standalone_team_id
+where event.event_kind = 'shot'
+group by
+  event.standalone_team_id,
+  team.name,
+  event.player_number;
+
 create or replace view public.v_standalone_goalkeeper_stats as
 select
   event.standalone_match_id,
