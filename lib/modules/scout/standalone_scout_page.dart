@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../repositories/standalone_scout_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_backdrop.dart';
 import '../../widgets/scout_lance_map_selector.dart';
@@ -15,6 +16,7 @@ class StandaloneScoutPage extends StatefulWidget {
 }
 
 class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
+  final _repository = StandaloneScoutRepository();
   final _homeNameController = TextEditingController(text: 'Time A');
   final _awayNameController = TextEditingController(text: 'Time B');
   final _homePlayerController = TextEditingController();
@@ -30,13 +32,20 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
   int _currentSecond = 0;
   int _homeScore = 0;
   int _awayScore = 0;
+  int _nextSequenceOrder = 1;
   String _period = 'first_half';
   String _mobileTeam = 'home';
+  String? _matchId;
+  String? _homeStandaloneTeamId;
+  String? _awayStandaloneTeamId;
   String? _errorMessage;
+  bool _isPreparingMatch = false;
 
   _ShotDraft _homeDraft = const _ShotDraft();
   _ShotDraft _awayDraft = const _ShotDraft();
   final List<_StandaloneScoutEvent> _events = [];
+  final Set<String> _deletedLocalEventKeys = {};
+  final Map<String, _MatchScoreSnapshot> _latestScoresByMatch = {};
 
   @override
   void dispose() {
@@ -51,7 +60,7 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
     super.dispose();
   }
 
-  void _configureMatch() {
+  Future<void> _configureMatch() async {
     final homeName = _homeNameController.text.trim();
     final awayName = _awayNameController.text.trim();
 
@@ -62,12 +71,50 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
       return;
     }
 
+    if (_repository.normalizeTeamName(homeName) ==
+        _repository.normalizeTeamName(awayName)) {
+      setState(() {
+        _errorMessage = 'Use nomes diferentes para os dois times.';
+      });
+      return;
+    }
+
     setState(() {
-      _isConfigured = true;
       _errorMessage = null;
+      _isPreparingMatch = true;
     });
 
-    _pageFocusNode.requestFocus();
+    try {
+      final homeTeam = await _repository.getOrCreateTeam(homeName);
+      final awayTeam = await _repository.getOrCreateTeam(awayName);
+      final match = await _repository.createMatch(
+        homeTeamId: homeTeam['id'] as String,
+        awayTeamId: awayTeam['id'] as String,
+        homeTeamName: homeTeam['name'] as String? ?? homeName,
+        awayTeamName: awayTeam['name'] as String? ?? awayName,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _homeNameController.text = homeTeam['name'] as String? ?? homeName;
+        _awayNameController.text = awayTeam['name'] as String? ?? awayName;
+        _homeStandaloneTeamId = homeTeam['id'] as String;
+        _awayStandaloneTeamId = awayTeam['id'] as String;
+        _matchId = match['id'] as String;
+        _isConfigured = true;
+        _isPreparingMatch = false;
+      });
+
+      _pageFocusNode.requestFocus();
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Erro ao criar partida avulsa no Supabase: $e';
+        _isPreparingMatch = false;
+      });
+    }
   }
 
   void _toggleClock() {
@@ -238,6 +285,18 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
   }
 
   void _saveEvent(String side) {
+    final matchId = _matchId;
+    final teamId = side == 'home' ? _homeStandaloneTeamId : _awayStandaloneTeamId;
+    final opponentTeamId =
+        side == 'home' ? _awayStandaloneTeamId : _homeStandaloneTeamId;
+
+    if (matchId == null || teamId == null || opponentTeamId == null) {
+      setState(() {
+        _errorMessage = 'A partida avulsa ainda não foi criada no Supabase.';
+      });
+      return;
+    }
+
     final draft = side == 'home' ? _homeDraft : _awayDraft;
     final playerController =
         side == 'home' ? _homePlayerController : _awayPlayerController;
@@ -283,33 +342,39 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
       return;
     }
 
-    setState(() {
-      if (draft.result == 'goal') {
-        if (side == 'home') {
-          _homeScore++;
-        } else {
-          _awayScore++;
-        }
-      }
+    final nextHomeScore =
+        draft.result == 'goal' && side == 'home' ? _homeScore + 1 : _homeScore;
+    final nextAwayScore =
+        draft.result == 'goal' && side == 'away' ? _awayScore + 1 : _awayScore;
+    final sequenceOrder = _nextSequenceOrder++;
+    final localKey = 'shot-$sequenceOrder';
+    _latestScoresByMatch[matchId] = _MatchScoreSnapshot(
+      homeScore: nextHomeScore,
+      awayScore: nextAwayScore,
+    );
+    final event = _StandaloneScoutEvent(
+      localKey: localKey,
+      kind: 'shot',
+      side: side,
+      teamName: side == 'home' ? _homeName : _awayName,
+      playerNumber: playerNumber,
+      goalkeeperNumber: draft.result == 'saved' ? goalkeeperNumber : null,
+      result: draft.result!,
+      shotZoneId: draft.zoneId!,
+      goalZoneId: draft.goalZoneId,
+      period: _period,
+      minute: _currentMinute,
+      second: _currentSecond,
+      sequenceOrder: sequenceOrder,
+      homeScoreAfter: nextHomeScore,
+      awayScoreAfter: nextAwayScore,
+    );
 
-      _events.insert(
-        0,
-        _StandaloneScoutEvent(
-          kind: 'shot',
-          side: side,
-          teamName: side == 'home' ? _homeName : _awayName,
-          playerNumber: playerNumber,
-          goalkeeperNumber: draft.result == 'saved' ? goalkeeperNumber : null,
-          result: draft.result!,
-          shotZoneId: draft.zoneId!,
-          goalZoneId: draft.goalZoneId,
-          period: _period,
-          minute: _currentMinute,
-          second: _currentSecond,
-          homeScoreAfter: _homeScore,
-          awayScoreAfter: _awayScore,
-        ),
-      );
+    setState(() {
+      _homeScore = nextHomeScore;
+      _awayScore = nextAwayScore;
+
+      _events.insert(0, event);
 
       if (side == 'home') {
         _homeDraft = const _ShotDraft();
@@ -320,52 +385,247 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
       goalkeeperController.clear();
       _errorMessage = null;
     });
+
+    unawaited(
+      _persistEvent(
+        localKey: localKey,
+        matchId: matchId,
+        teamId: teamId,
+        opponentTeamId: opponentTeamId,
+        eventKind: 'shot',
+        eventType: draft.result!,
+        period: event.period,
+        minute: event.minute,
+        second: event.second,
+        sequenceOrder: sequenceOrder,
+        homeScoreAfter: nextHomeScore,
+        awayScoreAfter: nextAwayScore,
+        playerNumber: playerNumber,
+        goalkeeperNumber: draft.result == 'saved' ? goalkeeperNumber : null,
+        shotZoneId: draft.zoneId,
+        goalZoneId: draft.goalZoneId,
+      ),
+    );
   }
 
   void _saveTeamEvent(String side, String eventType) {
+    final matchId = _matchId;
+    final teamId = side == 'home' ? _homeStandaloneTeamId : _awayStandaloneTeamId;
+    final opponentTeamId =
+        side == 'home' ? _awayStandaloneTeamId : _homeStandaloneTeamId;
+
+    if (matchId == null || teamId == null || opponentTeamId == null) {
+      setState(() {
+        _errorMessage = 'A partida avulsa ainda não foi criada no Supabase.';
+      });
+      return;
+    }
+
+    final sequenceOrder = _nextSequenceOrder++;
+    final localKey = 'team-$sequenceOrder';
+    final event = _StandaloneScoutEvent(
+      localKey: localKey,
+      kind: 'team',
+      side: side,
+      teamName: side == 'home' ? _homeName : _awayName,
+      teamEventType: eventType,
+      period: _period,
+      minute: _currentMinute,
+      second: _currentSecond,
+      sequenceOrder: sequenceOrder,
+      homeScoreAfter: _homeScore,
+      awayScoreAfter: _awayScore,
+    );
+
     setState(() {
-      _events.insert(
-        0,
-        _StandaloneScoutEvent(
-          kind: 'team',
-          side: side,
-          teamName: side == 'home' ? _homeName : _awayName,
-          teamEventType: eventType,
-          period: _period,
-          minute: _currentMinute,
-          second: _currentSecond,
-          homeScoreAfter: _homeScore,
-          awayScoreAfter: _awayScore,
-        ),
-      );
+      _events.insert(0, event);
       _errorMessage = null;
     });
+
+    unawaited(
+      _persistEvent(
+        localKey: localKey,
+        matchId: matchId,
+        teamId: teamId,
+        opponentTeamId: opponentTeamId,
+        eventKind: 'team',
+        eventType: eventType,
+        period: event.period,
+        minute: event.minute,
+        second: event.second,
+        sequenceOrder: sequenceOrder,
+        homeScoreAfter: event.homeScoreAfter,
+        awayScoreAfter: event.awayScoreAfter,
+      ),
+    );
+  }
+
+  Future<void> _persistEvent({
+    required String localKey,
+    required String matchId,
+    required String teamId,
+    required String opponentTeamId,
+    required String eventKind,
+    required String eventType,
+    required String period,
+    required int minute,
+    required int second,
+    required int sequenceOrder,
+    required int homeScoreAfter,
+    required int awayScoreAfter,
+    String? playerNumber,
+    String? goalkeeperNumber,
+    int? shotZoneId,
+    int? goalZoneId,
+  }) async {
+    try {
+      final created = await _repository.createEvent(
+        matchId: matchId,
+        teamId: teamId,
+        opponentTeamId: opponentTeamId,
+        eventKind: eventKind,
+        eventType: eventType,
+        period: period,
+        minute: minute,
+        second: second,
+        sequenceOrder: sequenceOrder,
+        homeScoreAfter: homeScoreAfter,
+        awayScoreAfter: awayScoreAfter,
+        playerNumber: playerNumber,
+        goalkeeperNumber: goalkeeperNumber,
+        shotZoneId: shotZoneId,
+        goalZoneId: goalZoneId,
+      );
+
+      final createdId = created['id'] as String;
+
+      if (_deletedLocalEventKeys.remove(localKey)) {
+        await _repository.deleteEvent(createdId);
+        return;
+      }
+
+      if (eventType == 'goal') {
+        final latestScore = _latestScoresByMatch[matchId] ??
+            _MatchScoreSnapshot(
+              homeScore: homeScoreAfter,
+              awayScore: awayScoreAfter,
+            );
+
+        await _repository.updateMatchScore(
+          matchId: matchId,
+          homeScore: latestScore.homeScore,
+          awayScore: latestScore.awayScore,
+        );
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        final index = _events.indexWhere((event) => event.localKey == localKey);
+        if (index >= 0) {
+          _events[index] = _events[index].copyWith(
+            id: createdId,
+            isSynced: true,
+            clearSyncError: true,
+          );
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        final index = _events.indexWhere((event) => event.localKey == localKey);
+        if (index >= 0) {
+          _events[index] = _events[index].copyWith(
+            syncError: 'Erro ao salvar no Supabase: $e',
+          );
+        }
+        _errorMessage = 'Um evento não foi salvo no Supabase. Confira o histórico.';
+      });
+    }
+  }
+
+  void _syncCurrentScore() {
+    final matchId = _matchId;
+    if (matchId == null) return;
+
+    _latestScoresByMatch[matchId] = _MatchScoreSnapshot(
+      homeScore: _homeScore,
+      awayScore: _awayScore,
+    );
+
+    unawaited(
+      _repository.updateMatchScore(
+        matchId: matchId,
+        homeScore: _homeScore,
+        awayScore: _awayScore,
+      ),
+    );
+  }
+
+  void _deletePersistedEvent(_StandaloneScoutEvent event) {
+    if (event.id != null) {
+      unawaited(_repository.deleteEvent(event.id!));
+    } else {
+      _deletedLocalEventKeys.add(event.localKey);
+    }
+  }
+
+  void _recalculateScore() {
+    _homeScore = _events
+        .where((event) => event.side == 'home' && event.result == 'goal')
+        .length;
+    _awayScore = _events
+        .where((event) => event.side == 'away' && event.result == 'goal')
+        .length;
+
+    for (var i = _events.length - 1; i >= 0; i--) {
+      var homeScore = 0;
+      var awayScore = 0;
+      for (var j = _events.length - 1; j >= i; j--) {
+        final event = _events[j];
+        if (event.side == 'home' && event.result == 'goal') {
+          homeScore++;
+        }
+        if (event.side == 'away' && event.result == 'goal') {
+          awayScore++;
+        }
+      }
+      _events[i] = _events[i].copyWith(
+        homeScoreAfter: homeScore,
+        awayScoreAfter: awayScore,
+      );
+    }
   }
 
   void _removeEvent(int index) {
     setState(() {
-      _events.removeAt(index);
-      _homeScore = _events
-          .where((event) => event.side == 'home' && event.result == 'goal')
-          .length;
-      _awayScore = _events
-          .where((event) => event.side == 'away' && event.result == 'goal')
-          .length;
+      final event = _events.removeAt(index);
+      _deletePersistedEvent(event);
+      _recalculateScore();
     });
+    _syncCurrentScore();
   }
 
   void _clearMatch() {
     _clockTimer?.cancel();
     setState(() {
+      _isConfigured = false;
+      _isPreparingMatch = false;
       _isClockRunning = false;
       _currentMinute = 0;
       _currentSecond = 0;
       _homeScore = 0;
       _awayScore = 0;
+      _nextSequenceOrder = 1;
       _period = 'first_half';
+      _matchId = null;
+      _homeStandaloneTeamId = null;
+      _awayStandaloneTeamId = null;
       _homeDraft = const _ShotDraft();
       _awayDraft = const _ShotDraft();
       _events.clear();
+      _deletedLocalEventKeys.clear();
       _homePlayerController.clear();
       _awayPlayerController.clear();
       _homeGoalkeeperController.clear();
@@ -465,9 +725,11 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
                   ],
                   const SizedBox(height: 20),
                   FilledButton.icon(
-                    onPressed: _configureMatch,
+                    onPressed: _isPreparingMatch ? null : _configureMatch,
                     icon: const Icon(Icons.play_arrow),
-                    label: const Text('Começar scout'),
+                    label: Text(
+                      _isPreparingMatch ? 'Criando partida...' : 'Começar scout',
+                    ),
                   ),
                 ],
               ),
@@ -623,8 +885,8 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
                 ),
                 OutlinedButton.icon(
                   onPressed: _clearMatch,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Limpar partida'),
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Nova partida'),
                 ),
               ],
             ),
@@ -805,7 +1067,7 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
               children: [
                 Expanded(
                   child: Text(
-                    'Histórico de lances',
+                    'Histórico de eventos',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -847,13 +1109,15 @@ class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
                     subtitle: Text(
                       event.isShot
                           ? '${_periodLabel(event.period)} ${event.clockLabel} | '
-                              'Z${event.shotZoneId.toString().padLeft(2, '0')}'
+                              'Z${event.shotZoneId!.toString().padLeft(2, '0')}'
                               '${event.goalTargetLabel == null ? '' : ' -> ${event.goalTargetLabel}'}'
                               '${event.goalkeeperNumber == null ? '' : ' | Goleiro ${event.goalkeeperNumber}'}'
                               ' | Placar ${event.homeScoreAfter} x ${event.awayScoreAfter}'
+                              '${event.syncStatusLabel}'
                           : '${_periodLabel(event.period)} ${event.clockLabel} | '
                               'Ataque encerrado por ${_teamEventLabel(event.teamEventType!).toLowerCase()}'
-                              ' | Placar ${event.homeScoreAfter} x ${event.awayScoreAfter}',
+                              ' | Placar ${event.homeScoreAfter} x ${event.awayScoreAfter}'
+                              '${event.syncStatusLabel}',
                     ),
                     trailing: IconButton(
                       tooltip: 'Remover lance',
@@ -897,7 +1161,19 @@ class _ShotDraft {
   }
 }
 
+class _MatchScoreSnapshot {
+  final int homeScore;
+  final int awayScore;
+
+  const _MatchScoreSnapshot({
+    required this.homeScore,
+    required this.awayScore,
+  });
+}
+
 class _StandaloneScoutEvent {
+  final String localKey;
+  final String? id;
   final String kind;
   final String side;
   final String teamName;
@@ -910,10 +1186,15 @@ class _StandaloneScoutEvent {
   final String period;
   final int minute;
   final int second;
+  final int sequenceOrder;
   final int homeScoreAfter;
   final int awayScoreAfter;
+  final bool isSynced;
+  final String? syncError;
 
   const _StandaloneScoutEvent({
+    required this.localKey,
+    this.id,
     required this.kind,
     required this.side,
     required this.teamName,
@@ -926,9 +1207,43 @@ class _StandaloneScoutEvent {
     required this.period,
     required this.minute,
     required this.second,
+    required this.sequenceOrder,
     required this.homeScoreAfter,
     required this.awayScoreAfter,
+    this.isSynced = false,
+    this.syncError,
   });
+
+  _StandaloneScoutEvent copyWith({
+    String? id,
+    int? homeScoreAfter,
+    int? awayScoreAfter,
+    bool? isSynced,
+    String? syncError,
+    bool clearSyncError = false,
+  }) {
+    return _StandaloneScoutEvent(
+      localKey: localKey,
+      id: id ?? this.id,
+      kind: kind,
+      side: side,
+      teamName: teamName,
+      playerNumber: playerNumber,
+      goalkeeperNumber: goalkeeperNumber,
+      result: result,
+      teamEventType: teamEventType,
+      shotZoneId: shotZoneId,
+      goalZoneId: goalZoneId,
+      period: period,
+      minute: minute,
+      second: second,
+      sequenceOrder: sequenceOrder,
+      homeScoreAfter: homeScoreAfter ?? this.homeScoreAfter,
+      awayScoreAfter: awayScoreAfter ?? this.awayScoreAfter,
+      isSynced: isSynced ?? this.isSynced,
+      syncError: clearSyncError ? null : syncError ?? this.syncError,
+    );
+  }
 
   String get clockLabel {
     final minutes = minute.toString().padLeft(2, '0');
@@ -941,6 +1256,12 @@ class _StandaloneScoutEvent {
   bool get isTeamEvent => kind == 'team';
 
   bool get countsAsAttack => isShot || isTeamEvent;
+
+  String get syncStatusLabel {
+    if (syncError != null) return ' | Erro ao sincronizar';
+    if (!isSynced) return ' | Salvando...';
+    return '';
+  }
 
   String? get goalTargetLabel {
     final zoneId = goalZoneId;
