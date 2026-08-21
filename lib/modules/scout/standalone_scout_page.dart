@@ -1,0 +1,975 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../../theme/app_theme.dart';
+import '../../widgets/app_backdrop.dart';
+import '../../widgets/scout_lance_map_selector.dart';
+
+class StandaloneScoutPage extends StatefulWidget {
+  const StandaloneScoutPage({super.key});
+
+  @override
+  State<StandaloneScoutPage> createState() => _StandaloneScoutPageState();
+}
+
+class _StandaloneScoutPageState extends State<StandaloneScoutPage> {
+  final _homeNameController = TextEditingController(text: 'Time A');
+  final _awayNameController = TextEditingController(text: 'Time B');
+  final _homePlayerController = TextEditingController();
+  final _awayPlayerController = TextEditingController();
+  final _homeGoalkeeperController = TextEditingController();
+  final _awayGoalkeeperController = TextEditingController();
+  final _pageFocusNode = FocusNode();
+
+  Timer? _clockTimer;
+  bool _isConfigured = false;
+  bool _isClockRunning = false;
+  int _currentMinute = 0;
+  int _currentSecond = 0;
+  int _homeScore = 0;
+  int _awayScore = 0;
+  String _period = 'first_half';
+  String _mobileTeam = 'home';
+  String? _errorMessage;
+
+  _ShotDraft _homeDraft = const _ShotDraft();
+  _ShotDraft _awayDraft = const _ShotDraft();
+  final List<_StandaloneShotEvent> _events = [];
+
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    _homeNameController.dispose();
+    _awayNameController.dispose();
+    _homePlayerController.dispose();
+    _awayPlayerController.dispose();
+    _homeGoalkeeperController.dispose();
+    _awayGoalkeeperController.dispose();
+    _pageFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _configureMatch() {
+    final homeName = _homeNameController.text.trim();
+    final awayName = _awayNameController.text.trim();
+
+    if (homeName.isEmpty || awayName.isEmpty) {
+      setState(() {
+        _errorMessage = 'Informe o nome dos dois times.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isConfigured = true;
+      _errorMessage = null;
+    });
+
+    _pageFocusNode.requestFocus();
+  }
+
+  void _toggleClock() {
+    if (_isClockRunning) {
+      _clockTimer?.cancel();
+      setState(() {
+        _isClockRunning = false;
+      });
+      return;
+    }
+
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _currentSecond++;
+        if (_currentSecond >= 60) {
+          _currentSecond = 0;
+          _currentMinute++;
+        }
+      });
+    });
+
+    setState(() {
+      _isClockRunning = true;
+    });
+  }
+
+  void _resetClock() {
+    _clockTimer?.cancel();
+    setState(() {
+      _isClockRunning = false;
+      _currentMinute = 0;
+      _currentSecond = 0;
+    });
+  }
+
+  String get _clockLabel {
+    final minutes = _currentMinute.toString().padLeft(2, '0');
+    final seconds = _currentSecond.toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  String get _homeName => _homeNameController.text.trim();
+  String get _awayName => _awayNameController.text.trim();
+
+  String _periodLabel(String period) {
+    switch (period) {
+      case 'second_half':
+        return '2º tempo';
+      case 'extra_1':
+        return 'Prorrogação 1';
+      case 'extra_2':
+        return 'Prorrogação 2';
+      case 'shootout':
+        return 'Tiros';
+      case 'first_half':
+      default:
+        return '1º tempo';
+    }
+  }
+
+  String _resultLabel(String result) {
+    switch (result) {
+      case 'goal':
+        return 'Gol';
+      case 'out':
+        return 'Fora';
+      case 'post':
+        return 'Trave';
+      case 'saved':
+        return 'Defesa';
+      default:
+        return result;
+    }
+  }
+
+  bool _needsGoalTarget(String? result) {
+    return result == 'goal' || result == 'saved' || result == 'out';
+  }
+
+  bool _insideGoalZonesEnabled(String? result) {
+    return result == 'goal' || result == 'saved';
+  }
+
+  bool _outsideGoalZonesEnabled(String? result) {
+    return result == 'out';
+  }
+
+  void _updateDraft(String side, _ShotDraft draft) {
+    setState(() {
+      if (side == 'home') {
+        _homeDraft = draft;
+      } else {
+        _awayDraft = draft;
+      }
+      _errorMessage = null;
+    });
+  }
+
+  void _selectShotZone(String side, int zoneId) {
+    final draft = side == 'home' ? _homeDraft : _awayDraft;
+    _updateDraft(
+      side,
+      draft.copyWith(
+        zoneId: draft.zoneId == zoneId ? null : zoneId,
+        clearZone: draft.zoneId == zoneId,
+      ),
+    );
+  }
+
+  void _selectGoalZone(String side, int goalZoneId) {
+    final draft = side == 'home' ? _homeDraft : _awayDraft;
+    _updateDraft(
+      side,
+      draft.copyWith(
+        goalZoneId: draft.goalZoneId == goalZoneId ? null : goalZoneId,
+        clearGoalZone: draft.goalZoneId == goalZoneId,
+      ),
+    );
+  }
+
+  void _selectResult(String side, String result) {
+    final draft = side == 'home' ? _homeDraft : _awayDraft;
+    final newResult = draft.result == result ? null : result;
+
+    _updateDraft(
+      side,
+      draft.copyWith(
+        result: newResult,
+        setResult: true,
+        clearGoalZone: !_needsGoalTarget(newResult) ||
+            _outsideGoalZonesEnabled(newResult) !=
+                _outsideGoalZonesEnabled(draft.result) ||
+            _insideGoalZonesEnabled(newResult) !=
+                _insideGoalZonesEnabled(draft.result),
+      ),
+    );
+  }
+
+  void _saveEvent(String side) {
+    final draft = side == 'home' ? _homeDraft : _awayDraft;
+    final playerController =
+        side == 'home' ? _homePlayerController : _awayPlayerController;
+    final goalkeeperController =
+        side == 'home' ? _homeGoalkeeperController : _awayGoalkeeperController;
+    final playerNumber = playerController.text.trim();
+    final goalkeeperNumber = goalkeeperController.text.trim();
+
+    if (playerNumber.isEmpty) {
+      setState(() {
+        _errorMessage = 'Informe o número da camisa do jogador.';
+      });
+      return;
+    }
+
+    if (draft.zoneId == null) {
+      setState(() {
+        _errorMessage = 'Marque a zona do chute.';
+      });
+      return;
+    }
+
+    if (draft.result == null) {
+      setState(() {
+        _errorMessage = 'Marque se foi gol, trave, fora ou defesa.';
+      });
+      return;
+    }
+
+    if (_needsGoalTarget(draft.result) && draft.goalZoneId == null) {
+      setState(() {
+        _errorMessage = draft.result == 'out'
+            ? 'Marque onde a bola saiu em relação ao gol.'
+            : 'Marque a zona no gol.';
+      });
+      return;
+    }
+
+    if (draft.result == 'saved' && goalkeeperNumber.isEmpty) {
+      setState(() {
+        _errorMessage = 'Informe o número do goleiro adversário.';
+      });
+      return;
+    }
+
+    setState(() {
+      if (draft.result == 'goal') {
+        if (side == 'home') {
+          _homeScore++;
+        } else {
+          _awayScore++;
+        }
+      }
+
+      _events.insert(
+        0,
+        _StandaloneShotEvent(
+          side: side,
+          teamName: side == 'home' ? _homeName : _awayName,
+          playerNumber: playerNumber,
+          goalkeeperNumber: draft.result == 'saved' ? goalkeeperNumber : null,
+          result: draft.result!,
+          shotZoneId: draft.zoneId!,
+          goalZoneId: draft.goalZoneId,
+          period: _period,
+          minute: _currentMinute,
+          second: _currentSecond,
+          homeScoreAfter: _homeScore,
+          awayScoreAfter: _awayScore,
+        ),
+      );
+
+      if (side == 'home') {
+        _homeDraft = const _ShotDraft();
+      } else {
+        _awayDraft = const _ShotDraft();
+      }
+      playerController.clear();
+      goalkeeperController.clear();
+      _errorMessage = null;
+    });
+  }
+
+  void _removeEvent(int index) {
+    setState(() {
+      _events.removeAt(index);
+      _homeScore = _events
+          .where((event) => event.side == 'home' && event.result == 'goal')
+          .length;
+      _awayScore = _events
+          .where((event) => event.side == 'away' && event.result == 'goal')
+          .length;
+    });
+  }
+
+  void _clearMatch() {
+    _clockTimer?.cancel();
+    setState(() {
+      _isClockRunning = false;
+      _currentMinute = 0;
+      _currentSecond = 0;
+      _homeScore = 0;
+      _awayScore = 0;
+      _period = 'first_half';
+      _homeDraft = const _ShotDraft();
+      _awayDraft = const _ShotDraft();
+      _events.clear();
+      _homePlayerController.clear();
+      _awayPlayerController.clear();
+      _homeGoalkeeperController.clear();
+      _awayGoalkeeperController.clear();
+      _errorMessage = null;
+    });
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.keyP) {
+      _toggleClock();
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scout avulso'),
+      ),
+      body: Focus(
+        focusNode: _pageFocusNode,
+        autofocus: true,
+        onKeyEvent: _handleKeyEvent,
+        child: AppBackdrop(
+          child: SafeArea(
+            child: _isConfigured ? _buildScoutBody() : _buildSetupBody(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSetupBody() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.sports_handball,
+                    size: 42,
+                    color: AppThemeColors.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Partida avulsa',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Crie um scout rápido sem cadastrar competição, times ou elenco.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _homeNameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome do Time A',
+                      prefixIcon: Icon(Icons.shield_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _awayNameController,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _configureMatch(),
+                    decoration: const InputDecoration(
+                      labelText: 'Nome do Time B',
+                      prefixIcon: Icon(Icons.shield_outlined),
+                    ),
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: _configureMatch,
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('Começar scout'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoutBody() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 860;
+        final teamPanelWidth = compact
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 44).clamp(360.0, 900.0) / 2;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(compact ? 12 : 18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader(compact: compact),
+              const SizedBox(height: 12),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _InlineError(message: _errorMessage!),
+                ),
+              if (compact) ...[
+                _buildMobileTeamSwitch(),
+                const SizedBox(height: 10),
+                _buildTeamPanel(
+                  side: _mobileTeam,
+                  width: teamPanelWidth,
+                ),
+              ] else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _buildTeamPanel(
+                        side: 'home',
+                        width: teamPanelWidth,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildTeamPanel(
+                        side: 'away',
+                        width: teamPanelWidth,
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 14),
+              _buildHistory(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader({required bool compact}) {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(compact ? 14 : 18),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _TeamScoreLabel(
+                    name: _homeName,
+                    align: TextAlign.right,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: Text(
+                    '$_homeScore x $_awayScore',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: AppThemeColors.ink,
+                        ),
+                  ),
+                ),
+                Expanded(
+                  child: _TeamScoreLabel(
+                    name: _awayName,
+                    align: TextAlign.left,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _clockLabel,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _PeriodChip(
+                  label: '1º tempo',
+                  selected: _period == 'first_half',
+                  onTap: () => setState(() => _period = 'first_half'),
+                ),
+                _PeriodChip(
+                  label: '2º tempo',
+                  selected: _period == 'second_half',
+                  onTap: () => setState(() => _period = 'second_half'),
+                ),
+                _PeriodChip(
+                  label: 'Prorr. 1',
+                  selected: _period == 'extra_1',
+                  onTap: () => setState(() => _period = 'extra_1'),
+                ),
+                _PeriodChip(
+                  label: 'Prorr. 2',
+                  selected: _period == 'extra_2',
+                  onTap: () => setState(() => _period = 'extra_2'),
+                ),
+                _PeriodChip(
+                  label: 'Tiros',
+                  selected: _period == 'shootout',
+                  onTap: () => setState(() => _period = 'shootout'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: _toggleClock,
+                  icon: Icon(_isClockRunning ? Icons.pause : Icons.play_arrow),
+                  label: Text(_isClockRunning ? 'Pause (P)' : 'Play (P)'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _resetClock,
+                  icon: const Icon(Icons.timer_off_outlined),
+                  label: const Text('Zerar tempo'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _clearMatch,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Limpar partida'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileTeamSwitch() {
+    return SegmentedButton<String>(
+      segments: [
+        ButtonSegment(value: 'home', label: Text(_homeName)),
+        ButtonSegment(value: 'away', label: Text(_awayName)),
+      ],
+      selected: {_mobileTeam},
+      onSelectionChanged: (selection) {
+        setState(() {
+          _mobileTeam = selection.first;
+        });
+      },
+    );
+  }
+
+  Widget _buildTeamPanel({
+    required String side,
+    required double width,
+  }) {
+    final isHome = side == 'home';
+    final teamName = isHome ? _homeName : _awayName;
+    final opponentName = isHome ? _awayName : _homeName;
+    final draft = isHome ? _homeDraft : _awayDraft;
+    final playerController =
+        isHome ? _homePlayerController : _awayPlayerController;
+    final goalkeeperController =
+        isHome ? _homeGoalkeeperController : _awayGoalkeeperController;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              teamName,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            ScoutLanceMapSelector(
+              selectedZoneId: draft.zoneId,
+              selectedGoalZoneId: draft.goalZoneId,
+              onZoneSelected: (zoneId) => _selectShotZone(side, zoneId),
+              onGoalZoneSelected: (goalZoneId) =>
+                  _selectGoalZone(side, goalZoneId),
+              goalZonesEnabled: _insideGoalZonesEnabled(draft.result),
+              outsideGoalZonesEnabled: _outsideGoalZonesEnabled(draft.result),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: playerController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Nº da camisa',
+                prefixIcon: Icon(Icons.numbers),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Evento',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _ResultButton(
+                  label: 'Gol',
+                  selected: draft.result == 'goal',
+                  color: const Color(0xFF4CAF50),
+                  onTap: () => _selectResult(side, 'goal'),
+                ),
+                _ResultButton(
+                  label: 'Trave',
+                  selected: draft.result == 'post',
+                  color: AppThemeColors.secondary,
+                  onTap: () => _selectResult(side, 'post'),
+                ),
+                _ResultButton(
+                  label: 'Fora',
+                  selected: draft.result == 'out',
+                  color: AppThemeColors.info,
+                  onTap: () => _selectResult(side, 'out'),
+                ),
+                _ResultButton(
+                  label: 'Defesa',
+                  selected: draft.result == 'saved',
+                  color: AppThemeColors.violet,
+                  onTap: () => _selectResult(side, 'saved'),
+                ),
+              ],
+            ),
+            if (draft.result == 'saved') ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: goalkeeperController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: 'Nº goleiro adversário ($opponentName)',
+                  prefixIcon: const Icon(Icons.sports_handball),
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+            _DraftSummary(draft: draft, resultLabel: _resultLabel),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => _saveEvent(side),
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Salvar lance'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistory() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Histórico de lances',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+                Text('${_events.length} lances'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_events.isEmpty)
+              const Text('Nenhum lance salvo ainda.')
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _events.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final event = _events[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          AppThemeColors.primary.withValues(alpha: 0.12),
+                      foregroundColor: AppThemeColors.primary,
+                      child: Text(event.playerNumber),
+                    ),
+                    title: Text(
+                      '${event.teamName} - ${_resultLabel(event.result)}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      '${_periodLabel(event.period)} ${event.clockLabel} | '
+                      'Z${event.shotZoneId.toString().padLeft(2, '0')}'
+                      '${event.goalTargetLabel == null ? '' : ' -> ${event.goalTargetLabel}'}'
+                      '${event.goalkeeperNumber == null ? '' : ' | Goleiro ${event.goalkeeperNumber}'}'
+                      ' | Placar ${event.homeScoreAfter} x ${event.awayScoreAfter}',
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Remover lance',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _removeEvent(index),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShotDraft {
+  final int? zoneId;
+  final int? goalZoneId;
+  final String? result;
+
+  const _ShotDraft({
+    this.zoneId,
+    this.goalZoneId,
+    this.result,
+  });
+
+  _ShotDraft copyWith({
+    int? zoneId,
+    int? goalZoneId,
+    String? result,
+    bool setResult = false,
+    bool clearZone = false,
+    bool clearGoalZone = false,
+  }) {
+    return _ShotDraft(
+      zoneId: clearZone ? null : zoneId ?? this.zoneId,
+      goalZoneId: clearGoalZone ? null : goalZoneId ?? this.goalZoneId,
+      result: setResult ? result : this.result,
+    );
+  }
+}
+
+class _StandaloneShotEvent {
+  final String side;
+  final String teamName;
+  final String playerNumber;
+  final String? goalkeeperNumber;
+  final String result;
+  final int shotZoneId;
+  final int? goalZoneId;
+  final String period;
+  final int minute;
+  final int second;
+  final int homeScoreAfter;
+  final int awayScoreAfter;
+
+  const _StandaloneShotEvent({
+    required this.side,
+    required this.teamName,
+    required this.playerNumber,
+    required this.goalkeeperNumber,
+    required this.result,
+    required this.shotZoneId,
+    required this.goalZoneId,
+    required this.period,
+    required this.minute,
+    required this.second,
+    required this.homeScoreAfter,
+    required this.awayScoreAfter,
+  });
+
+  String get clockLabel {
+    final minutes = minute.toString().padLeft(2, '0');
+    final seconds = second.toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  String? get goalTargetLabel {
+    final zoneId = goalZoneId;
+    if (zoneId == null) return null;
+    if (zoneId <= 9) {
+      return 'G${zoneId.toString().padLeft(2, '0')}';
+    }
+    return 'F${(zoneId - 10).toString().padLeft(2, '0')}';
+  }
+}
+
+class _TeamScoreLabel extends StatelessWidget {
+  final String name;
+  final TextAlign align;
+
+  const _TeamScoreLabel({
+    required this.name,
+    required this.align,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      name,
+      textAlign: align,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+    );
+  }
+}
+
+class _PeriodChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PeriodChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+    );
+  }
+}
+
+class _ResultButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ResultButton({
+    required this.label,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 38,
+      child: FilledButton(
+        onPressed: onTap,
+        style: FilledButton.styleFrom(
+          backgroundColor: selected ? color : AppThemeColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+class _DraftSummary extends StatelessWidget {
+  final _ShotDraft draft;
+  final String Function(String result) resultLabel;
+
+  const _DraftSummary({
+    required this.draft,
+    required this.resultLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final zone = draft.zoneId == null
+        ? 'Zona: -'
+        : 'Zona: Z${draft.zoneId.toString().padLeft(2, '0')}';
+    final goalZone = draft.goalZoneId == null
+        ? 'Alvo: -'
+        : draft.goalZoneId! <= 9
+            ? 'Alvo: G${draft.goalZoneId.toString().padLeft(2, '0')}'
+            : 'Alvo: F${(draft.goalZoneId! - 10).toString().padLeft(2, '0')}';
+    final result =
+        draft.result == null ? 'Evento: -' : 'Evento: ${resultLabel(draft.result!)}';
+
+    return Text(
+      '$zone | $goalZone | $result',
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.bodySmall,
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  final String message;
+
+  const _InlineError({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFEBEE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFCDD2)),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Color(0xFFC62828),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}

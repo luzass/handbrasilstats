@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_backdrop.dart';
 import 'admin_competitions_page.dart';
 import '../scout/scout_match_list_page.dart';
+import '../scout/standalone_scout_page.dart';
 import '../statistics/match_statistics_list_page.dart';
 import '../statistics/team_statistics_list_page.dart';
 import 'match_list_page.dart';
@@ -86,6 +87,19 @@ class AdminHomePage extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => const ScoutMatchListPage(),
+            ),
+          );
+        },
+      ),
+      _AdminAction(
+        title: 'Scout avulso',
+        subtitle: 'Partida rápida sem cadastro de elenco',
+        icon: Icons.sports_handball,
+        accent: const Color(0xFF0891B2),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const StandaloneScoutPage(),
             ),
           );
         },

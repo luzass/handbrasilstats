@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/match_model.dart';
 import '../../repositories/match_repository.dart';
 import 'live_scout_page.dart';
+import 'standalone_scout_page.dart';
 
 class ScoutMatchListPage extends StatefulWidget {
   const ScoutMatchListPage({super.key});
@@ -103,6 +104,17 @@ class _ScoutMatchListPageState extends State<ScoutMatchListPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Partidas para Scout'),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const StandaloneScoutPage(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.sports_handball),
+        label: const Text('Scout avulso'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
