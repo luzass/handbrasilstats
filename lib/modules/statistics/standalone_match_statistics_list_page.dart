@@ -231,6 +231,17 @@ class _StandaloneMatchStatisticsListPageState
     return '${parsed.toStringAsFixed(1)}%';
   }
 
+  Map<String, List<Map<String, dynamic>>> _groupByTeam(
+    List<Map<String, dynamic>> rows,
+  ) {
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final row in rows) {
+      final teamName = row['team_name'] as String? ?? '-';
+      grouped.putIfAbsent(teamName, () => []).add(row);
+    }
+    return grouped;
+  }
+
   Widget _buildViewSwitch() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -264,45 +275,68 @@ class _StandaloneMatchStatisticsListPageState
       );
     }
 
+    final playersByTeam = _groupByTeam(_filteredPlayers);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Time')),
-                  DataColumn(label: Text('Camisa')),
-                  DataColumn(label: Text('Jogos')),
-                  DataColumn(label: Text('Chutes')),
-                  DataColumn(label: Text('Gols')),
-                  DataColumn(label: Text('Trave')),
-                  DataColumn(label: Text('Fora')),
-                  DataColumn(label: Text('Defesa')),
-                  DataColumn(label: Text('% Gol')),
-                ],
-                rows: _filteredPlayers.map((player) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(player['team_name'] as String? ?? '-')),
-                      DataCell(Text(player['player_number']?.toString() ?? '-')),
-                      DataCell(Text(_fmt(player['matches']))),
-                      DataCell(Text(_fmt(player['shots']))),
-                      DataCell(Text(_fmt(player['goals']))),
-                      DataCell(Text(_fmt(player['posts']))),
-                      DataCell(Text(_fmt(player['outs']))),
-                      DataCell(Text(_fmt(player['saved_shots']))),
-                      DataCell(Text(_formatPercent(player['goal_percentage']))),
-                    ],
-                  );
-                }).toList(),
+        for (final entry in playersByTeam.entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 4, 10),
+                      child: Text(
+                        entry.key,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Camisa')),
+                          DataColumn(label: Text('Jogos')),
+                          DataColumn(label: Text('Chutes')),
+                          DataColumn(label: Text('Gols')),
+                          DataColumn(label: Text('Trave')),
+                          DataColumn(label: Text('Fora')),
+                          DataColumn(label: Text('Defesa')),
+                          DataColumn(label: Text('% Gol')),
+                        ],
+                        rows: entry.value.map((player) {
+                          return DataRow(
+                            cells: [
+                              DataCell(
+                                Text(player['player_number']?.toString() ?? '-'),
+                              ),
+                              DataCell(Text(_fmt(player['matches']))),
+                              DataCell(Text(_fmt(player['shots']))),
+                              DataCell(Text(_fmt(player['goals']))),
+                              DataCell(Text(_fmt(player['posts']))),
+                              DataCell(Text(_fmt(player['outs']))),
+                              DataCell(Text(_fmt(player['saved_shots']))),
+                              DataCell(
+                                Text(_formatPercent(player['goal_percentage'])),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

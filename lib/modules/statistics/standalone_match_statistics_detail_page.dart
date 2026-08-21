@@ -177,6 +177,17 @@ class _StandaloneMatchStatisticsDetailPageState
     );
   }
 
+  Map<String, List<Map<String, dynamic>>> _groupByTeam(
+    List<Map<String, dynamic>> rows,
+  ) {
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final row in rows) {
+      final teamName = row['team_name'] as String? ?? '-';
+      grouped.putIfAbsent(teamName, () => []).add(row);
+    }
+    return grouped;
+  }
+
   Widget _buildHeader() {
     final homeName = widget.match['home_team_name'] as String? ?? 'Time A';
     final awayName = widget.match['away_team_name'] as String? ?? 'Time B';
@@ -303,35 +314,57 @@ class _StandaloneMatchStatisticsDetailPageState
               child: Text('Nenhum arremesso registrado.'),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Time')),
-                  DataColumn(label: Text('Camisa')),
-                  DataColumn(label: Text('Chutes')),
-                  DataColumn(label: Text('Gols')),
-                  DataColumn(label: Text('Trave')),
-                  DataColumn(label: Text('Fora')),
-                  DataColumn(label: Text('Defesa')),
-                  DataColumn(label: Text('% Gol')),
-                ],
-                rows: _playerStats.map((player) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(player['team_name'] as String? ?? '-')),
-                      DataCell(Text(player['player_number']?.toString() ?? '-')),
-                      DataCell(Text(_fmt(player['shots']))),
-                      DataCell(Text(_fmt(player['goals']))),
-                      DataCell(Text(_fmt(player['posts']))),
-                      DataCell(Text(_fmt(player['outs']))),
-                      DataCell(Text(_fmt(player['saved_shots']))),
-                      DataCell(Text(_formatPercent(player['goal_percentage']))),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
+            ..._groupByTeam(_playerStats).entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+                      child: Text(
+                        entry.key,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Camisa')),
+                          DataColumn(label: Text('Chutes')),
+                          DataColumn(label: Text('Gols')),
+                          DataColumn(label: Text('Trave')),
+                          DataColumn(label: Text('Fora')),
+                          DataColumn(label: Text('Defesa')),
+                          DataColumn(label: Text('% Gol')),
+                        ],
+                        rows: entry.value.map((player) {
+                          return DataRow(
+                            cells: [
+                              DataCell(
+                                Text(player['player_number']?.toString() ?? '-'),
+                              ),
+                              DataCell(Text(_fmt(player['shots']))),
+                              DataCell(Text(_fmt(player['goals']))),
+                              DataCell(Text(_fmt(player['posts']))),
+                              DataCell(Text(_fmt(player['outs']))),
+                              DataCell(Text(_fmt(player['saved_shots']))),
+                              DataCell(
+                                Text(_formatPercent(player['goal_percentage'])),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -418,27 +451,48 @@ class _StandaloneMatchStatisticsDetailPageState
               child: Text('Nenhuma defesa registrada com goleiro.'),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columns: const [
-                  DataColumn(label: Text('Time')),
-                  DataColumn(label: Text('Camisa')),
-                  DataColumn(label: Text('Defesas')),
-                ],
-                rows: _goalkeeperStats.map((goalkeeper) {
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(goalkeeper['team_name'] as String? ?? '-')),
-                      DataCell(
-                        Text(goalkeeper['goalkeeper_number']?.toString() ?? '-'),
+            ..._groupByTeam(_goalkeeperStats).entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+                      child: Text(
+                        entry.key,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                      DataCell(Text(_fmt(goalkeeper['saves']))),
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
+                    ),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        columns: const [
+                          DataColumn(label: Text('Camisa')),
+                          DataColumn(label: Text('Defesas')),
+                        ],
+                        rows: entry.value.map((goalkeeper) {
+                          return DataRow(
+                            cells: [
+                              DataCell(
+                                Text(
+                                  goalkeeper['goalkeeper_number']?.toString() ??
+                                      '-',
+                                ),
+                              ),
+                              DataCell(Text(_fmt(goalkeeper['saves']))),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );
