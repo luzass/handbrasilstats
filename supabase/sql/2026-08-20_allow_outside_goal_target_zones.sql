@@ -1,4 +1,7 @@
 alter table public.shot_events
+drop constraint if exists shot_events_goal_zone_id_fkey;
+
+alter table public.shot_events
 drop constraint if exists shot_events_goal_zone_id_check;
 
 alter table public.shot_events
