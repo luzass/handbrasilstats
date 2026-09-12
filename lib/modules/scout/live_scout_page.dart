@@ -578,12 +578,35 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
     return result == 'goal' || result == 'saved' || result == 'out';
   }
 
-  bool _insideGoalZonesEnabled(String? result) {
-    return result == 'goal' || result == 'saved';
+  bool _isInsideGoalZone(int? goalZoneId) {
+    return goalZoneId != null && goalZoneId >= 1 && goalZoneId <= 9;
   }
 
-  bool _outsideGoalZonesEnabled(String? result) {
-    return result == 'out';
+  bool _isOutsideGoalZone(int? goalZoneId) {
+    return goalZoneId != null && goalZoneId >= 11 && goalZoneId <= 20;
+  }
+
+  String? _goalTargetValidationMessage(_ShotDraft draft, String teamLabel) {
+    if (!_goalZoneIsRequired(draft.result)) {
+      return null;
+    }
+
+    if (draft.goalZoneId == null) {
+      return draft.result == 'out'
+          ? 'Selecione onde a bola saiu no chute do $teamLabel.'
+          : 'Selecione a zona do gol do $teamLabel.';
+    }
+
+    if ((draft.result == 'goal' || draft.result == 'saved') &&
+        !_isInsideGoalZone(draft.goalZoneId)) {
+      return 'Para Gol ou Defesa, selecione uma região dentro do gol (G01 a G09) no $teamLabel.';
+    }
+
+    if (draft.result == 'out' && !_isOutsideGoalZone(draft.goalZoneId)) {
+      return 'Para Fora, selecione uma região fora do gol (F01 a F09) no $teamLabel.';
+    }
+
+    return null;
   }
 
   bool _attackContextApplies(String? result) {
@@ -631,11 +654,11 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return;
     }
 
-    if (_goalZoneIsRequired(draft.result) && draft.goalZoneId == null) {
+    final goalTargetError =
+        _goalTargetValidationMessage(draft, 'time da esquerda');
+    if (goalTargetError != null) {
       setState(() {
-        _errorMessage = draft.result == 'out'
-            ? 'Selecione onde a bola saiu no chute do time da esquerda.'
-            : 'Selecione a zona do gol do time da esquerda.';
+        _errorMessage = goalTargetError;
       });
       return;
     }
@@ -715,11 +738,11 @@ class _LiveScoutPageState extends State<LiveScoutPage> {
       return;
     }
 
-    if (_goalZoneIsRequired(draft.result) && draft.goalZoneId == null) {
+    final goalTargetError =
+        _goalTargetValidationMessage(draft, 'time da direita');
+    if (goalTargetError != null) {
       setState(() {
-        _errorMessage = draft.result == 'out'
-            ? 'Selecione onde a bola saiu no chute do time da direita.'
-            : 'Selecione a zona do gol do time da direita.';
+        _errorMessage = goalTargetError;
       });
       return;
     }
@@ -1725,10 +1748,6 @@ Widget _buildMatchHeader({
     required bool isSavingGenericEvent,
     required bool genericNeedsPlayer,
   }) {
-    final goalTargetRequired = _goalZoneIsRequired(selectedResult);
-    final insideGoalZonesEnabled = _insideGoalZonesEnabled(selectedResult);
-    final outsideGoalZonesEnabled = _outsideGoalZonesEnabled(selectedResult);
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 760;
@@ -1760,31 +1779,20 @@ Widget _buildMatchHeader({
                         selectedGoalZoneId: selectedGoalZoneId,
                         onZoneSelected: onZoneSelected,
                         onGoalZoneSelected: onGoalZoneSelected,
-                        goalZonesEnabled: insideGoalZonesEnabled,
-                        outsideGoalZonesEnabled: outsideGoalZonesEnabled,
+                        goalZonesEnabled: true,
+                        outsideGoalZonesEnabled: true,
                       ),
                     ),
                   ),
                 ),
-                if (selectedResult == 'out') ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Marque no mapa onde a bola saiu: acima, esquerda ou direita do gol.',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: compact ? 11 : 12,
-                    ),
+                const SizedBox(height: 6),
+                Text(
+                  'Marque a zona do chute e, para Gol, Defesa ou Fora, marque tambem o alvo no mapa.',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: compact ? 11 : 12,
                   ),
-                ] else if (!goalTargetRequired) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Para Trave e Bloqueado, marque so a zona do chute.',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: compact ? 11 : 12,
-                    ),
-                  ),
-                ],
+                ),
                 SizedBox(height: compact ? 8 : 12),
                 const Align(
                   alignment: Alignment.centerLeft,
@@ -1983,12 +1991,9 @@ Widget _buildMatchHeader({
                 },
                 selectedResult: draft.result,
                 onResultChanged: (value) {
-                  final targetModeChanged = _outsideGoalZonesEnabled(value) !=
-                      _outsideGoalZonesEnabled(draft.result);
                   _leftShotDraft.value = draft.copyWith(
                     result: value,
                     attackContext: value == 'goal' ? draft.attackContext : 'normal',
-                    clearGoalZoneId: targetModeChanged || !_goalZoneIsRequired(value),
                   );
                 },
                 selectedAttackContext: draft.attackContext,
@@ -2043,12 +2048,9 @@ Widget _buildMatchHeader({
                 },
                 selectedResult: draft.result,
                 onResultChanged: (value) {
-                  final targetModeChanged = _outsideGoalZonesEnabled(value) !=
-                      _outsideGoalZonesEnabled(draft.result);
                   _rightShotDraft.value = draft.copyWith(
                     result: value,
                     attackContext: value == 'goal' ? draft.attackContext : 'normal',
-                    clearGoalZoneId: targetModeChanged || !_goalZoneIsRequired(value),
                   );
                 },
                 selectedAttackContext: draft.attackContext,
@@ -2269,13 +2271,9 @@ Widget _buildMatchHeader({
                         },
                         selectedResult: draft.result,
                         onResultChanged: (value) {
-                          final targetModeChanged =
-                              _outsideGoalZonesEnabled(value) !=
-                                  _outsideGoalZonesEnabled(draft.result);
                           _leftShotDraft.value = draft.copyWith(
                             result: value,
                             attackContext: value == 'goal' ? draft.attackContext : 'normal',
-                            clearGoalZoneId: targetModeChanged || !_goalZoneIsRequired(value),
                           );
                         },
                         selectedAttackContext: draft.attackContext,
@@ -2330,13 +2328,9 @@ Widget _buildMatchHeader({
                         },
                         selectedResult: draft.result,
                         onResultChanged: (value) {
-                          final targetModeChanged =
-                              _outsideGoalZonesEnabled(value) !=
-                                  _outsideGoalZonesEnabled(draft.result);
                           _rightShotDraft.value = draft.copyWith(
                             result: value,
                             attackContext: value == 'goal' ? draft.attackContext : 'normal',
-                            clearGoalZoneId: targetModeChanged || !_goalZoneIsRequired(value),
                           );
                         },
                         selectedAttackContext: draft.attackContext,
