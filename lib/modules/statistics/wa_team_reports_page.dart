@@ -106,15 +106,18 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
           .replaceAll(RegExp('[^a-z0-9]+'), '_')
           .replaceAll(RegExp(r'^_|_$'), '');
       final filename = 'copa_wa_${_genderFilter}_$safeName.pdf';
-      final started = await Printing.sharePdf(bytes: bytes, filename: filename);
+      final opened = await Printing.layoutPdf(
+        name: filename,
+        onLayout: (_) async => bytes,
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            started
-                ? 'PDF pronto para baixar ou compartilhar.'
-                : 'Não foi possível iniciar o download do PDF.',
+            opened
+                ? 'Na janela aberta, escolha "Salvar como PDF".'
+                : 'Não foi possível abrir a janela para salvar o PDF.',
           ),
         ),
       );
