@@ -124,33 +124,6 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
     final players = _athletesFor(reportData, 'players', teamId);
     final goalkeepers = _athletesFor(reportData, 'goalkeepers', teamId);
     final shots = _shotsFor(reportData, teamId);
-    final shotSections = <pw.Widget>[];
-    for (final player in players) {
-      final playerId = player['player_id'] as String?;
-      if (playerId == null) continue;
-      final playerRows = _playerShotRows(playerId, shots);
-      if (playerRows.isEmpty) continue;
-      shotSections.add(pw.SizedBox(height: 10));
-      shotSections.add(
-        pw.Text(
-          player['player_name'] as String? ?? 'Atleta',
-          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-        ),
-      );
-      shotSections.add(pw.SizedBox(height: 4));
-      shotSections.add(
-        table([
-          'Zona de arremesso',
-          'Zona do gol',
-          'Chutes',
-          'Gols',
-          'Defesas',
-          'Fora',
-          'Trave',
-          'Bloqueados',
-        ], playerRows),
-      );
-    }
     final pdf = pw.Document();
     const headerStyle = pw.TextStyle(
       fontSize: 9,
@@ -180,6 +153,34 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
         cellAlignments: {
           for (var i = 1; i < headers.length; i++) i: pw.Alignment.center,
         },
+      );
+    }
+
+    final shotSections = <pw.Widget>[];
+    for (final player in players) {
+      final playerId = player['player_id'] as String?;
+      if (playerId == null) continue;
+      final playerRows = _playerShotRows(playerId, shots);
+      if (playerRows.isEmpty) continue;
+      shotSections.add(pw.SizedBox(height: 10));
+      shotSections.add(
+        pw.Text(
+          player['player_name'] as String? ?? 'Atleta',
+          style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        ),
+      );
+      shotSections.add(pw.SizedBox(height: 4));
+      shotSections.add(
+        table([
+          'Zona de arremesso',
+          'Zona do gol',
+          'Chutes',
+          'Gols',
+          'Defesas',
+          'Fora',
+          'Trave',
+          'Bloqueados',
+        ], playerRows),
       );
     }
 
