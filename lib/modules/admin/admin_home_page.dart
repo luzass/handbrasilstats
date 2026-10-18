@@ -8,6 +8,7 @@ import '../scout/scout_match_list_page.dart';
 import '../scout/standalone_scout_page.dart';
 import '../statistics/match_statistics_list_page.dart';
 import '../statistics/standalone_match_statistics_list_page.dart';
+import '../statistics/wa_team_reports_page.dart';
 import '../statistics/team_statistics_list_page.dart';
 import 'match_list_page.dart';
 import 'player_list_page.dart';
@@ -140,6 +141,19 @@ class AdminHomePage extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => const TeamStatisticsListPage(),
+            ),
+          );
+        },
+      ),
+      _AdminAction(
+        title: 'Relatórios Copa W.A',
+        subtitle: 'Baixe um PDF de estatísticas por equipe',
+        icon: Icons.picture_as_pdf_outlined,
+        accent: const Color(0xFFB42318),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const WaTeamReportsPage(),
             ),
           );
         },
