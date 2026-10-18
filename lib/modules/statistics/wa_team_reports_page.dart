@@ -183,6 +183,7 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
     pw.Widget metricCard(String label, String value, int accent) => pw.Expanded(
       child: pw.Container(
         margin: const pw.EdgeInsets.only(right: 7),
+        height: 52,
         padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: pw.BoxDecoration(
           color: PdfColor.fromInt(0xFFF3F7F8),
@@ -293,7 +294,6 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
           pw.Text('Resumo do time', style: headingStyle),
           pw.SizedBox(height: 7),
           pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
               metricCard('PARTIDAS', '${matches.length}', 0xFF0F766E),
               metricCard('CHUTES', val('shots'), 0xFF2878C8),
