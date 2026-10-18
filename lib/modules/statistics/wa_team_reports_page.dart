@@ -125,7 +125,7 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
     final goalkeepers = _athletesFor(reportData, 'goalkeepers', teamId);
     final shots = _shotsFor(reportData, teamId);
     final pdf = pw.Document();
-    const headerStyle = pw.TextStyle(
+    final headerStyle = pw.TextStyle(
       fontSize: 9,
       color: PdfColors.white,
       fontWeight: pw.FontWeight.bold,
@@ -155,6 +155,38 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
         },
       );
     }
+
+    pw.Widget metricCard(String label, String value, int accent) => pw.Expanded(
+      child: pw.Container(
+        margin: const pw.EdgeInsets.only(right: 7),
+        padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: pw.BoxDecoration(
+          color: PdfColor.fromInt(0xFFF3F7F8),
+          border: pw.Border(
+            left: pw.BorderSide(color: PdfColor.fromInt(accent), width: 3),
+          ),
+          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(7)),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              label,
+              style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Text(
+              value,
+              style: pw.TextStyle(
+                fontSize: 16,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColor.fromInt(0xFF10233F),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
 
     final shotSections = <pw.Widget>[];
     for (final player in players) {
@@ -200,7 +232,7 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
           alignment: pw.Alignment.centerRight,
           margin: const pw.EdgeInsets.only(bottom: 12),
           child: pw.Text(
-            'HANDBRASIL STATS  •  ${competition['year'] ?? ''}',
+            'HANDBRASIL STATS  |  ${competition['year'] ?? ''}',
             style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
           ),
         ),
@@ -231,29 +263,71 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
           ),
           pw.SizedBox(height: 4),
           pw.Text(
-            'Relatório da equipe • ${matches.length} partidas cadastradas',
+            'Relatório da equipe | ${matches.length} partidas cadastradas',
           ),
           pw.SizedBox(height: 18),
           pw.Text('Resumo do time', style: headingStyle),
           pw.SizedBox(height: 7),
-          table(
-            ['Indicador', 'Total'],
-            [
-              ['Chutes', val('shots')],
-              ['Gols', val('goals_scored')],
-              ['Aproveitamento', pct('goals_scored', 'shots')],
-              ['Gols de 9m', val('goals_9m')],
-              ['Chutes de 9m', val('shots_9m')],
-              ['Gols de 7m', val('goals_7m')],
-              ['Chutes de 7m', val('shots_7m')],
-              ['Gols de 6m', val('goals_6m')],
-              ['Chutes de 6m', val('shots_6m')],
-              ['Contra-ataque', val('counter_attack_goals')],
-              ['Arremessos para fora', val('shots_out')],
-              ['Arremessos defendidos', val('shots_saved')],
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              metricCard('PARTIDAS', '${matches.length}', 0xFF0F766E),
+              metricCard('CHUTES', val('shots'), 0xFF2878C8),
+              metricCard('GOLS', val('goals_scored'), 0xFF37A66B),
+              metricCard(
+                'APROVEITAMENTO',
+                pct('goals_scored', 'shots'),
+                0xFFE6AD2D,
+              ),
             ],
           ),
-          pw.SizedBox(height: 18),
+          pw.SizedBox(height: 14),
+          pw.Text('Mapa de arremessos', style: headingStyle),
+          pw.SizedBox(height: 6),
+          pw.Container(
+            width: double.infinity,
+            height: 330,
+            child: pw.SvgImage(
+              svg: _teamCourtMapSvg(shots),
+              fit: pw.BoxFit.contain,
+            ),
+          ),
+          pw.Wrap(
+            spacing: 10,
+            runSpacing: 4,
+            children: [
+              for (final entry in const <(String, int)>[
+                ('Sem dados', 0xFFE6E8EC),
+                ('80%+', 0xFF80C889),
+                ('60%+', 0xFFA8D8AA),
+                ('40%+', 0xFFFFF19B),
+                ('20%+', 0xFFFFC76F),
+                ('Abaixo de 20%', 0xFFEF9696),
+              ])
+                pw.Row(
+                  mainAxisSize: pw.MainAxisSize.min,
+                  children: [
+                    pw.Container(
+                      width: 9,
+                      height: 9,
+                      decoration: pw.BoxDecoration(
+                        color: PdfColor.fromInt(entry.$2),
+                        border: pw.Border.all(color: PdfColors.grey500),
+                      ),
+                    ),
+                    pw.SizedBox(width: 3),
+                    pw.Text(
+                      entry.$1,
+                      style: const pw.TextStyle(
+                        fontSize: 7,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          pw.SizedBox(height: 14),
           pw.Text('Partidas', style: headingStyle),
           pw.SizedBox(height: 7),
           table(
@@ -326,6 +400,113 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
       ),
     );
     return pdf;
+  }
+
+  String _teamCourtMapSvg(List<Map<String, dynamic>> shots) {
+    final goalStats = <int, Map<String, int>>{
+      for (var id = 1; id <= 9; id++) id: {'shots': 0, 'goals': 0},
+    };
+    final shotZoneCounts = <int, int>{for (var id = 1; id <= 11; id++) id: 0};
+
+    for (final shot in shots) {
+      final result = (shot['shot_result'] as String? ?? '').toLowerCase();
+      final goalZone = (shot['goal_zone_id'] as num?)?.toInt();
+      if (goalZone != null && goalZone >= 1 && goalZone <= 9) {
+        goalStats[goalZone]!['shots'] = goalStats[goalZone]!['shots']! + 1;
+        if (result == 'goal') {
+          goalStats[goalZone]!['goals'] = goalStats[goalZone]!['goals']! + 1;
+        }
+      }
+
+      final shotType = (shot['shot_type'] as String? ?? '').toLowerCase();
+      final zone = shotType.contains('7')
+          ? 11
+          : (shot['zone_id'] as num?)?.toInt();
+      if (zone != null && shotZoneCounts.containsKey(zone)) {
+        shotZoneCounts[zone] = shotZoneCounts[zone]! + 1;
+      }
+    }
+
+    const goalOrder = [1, 4, 7, 2, 5, 8, 3, 6, 9];
+    const shotAnchors = <int, (int, int)>{
+      1: (171, 306),
+      5: (589, 306),
+      10: (97, 356),
+      6: (663, 356),
+      2: (263, 330),
+      3: (380, 382),
+      4: (497, 330),
+      9: (183, 452),
+      8: (380, 473),
+      7: (577, 452),
+      11: (380, 286),
+    };
+    String goalColor(int zone) {
+      final stats = goalStats[zone]!;
+      if (stats['shots'] == 0) return '#E6E8EC';
+      final percentage = stats['goals']! / stats['shots']! * 100;
+      if (percentage >= 80) return '#80C889';
+      if (percentage >= 60) return '#A8D8AA';
+      if (percentage >= 40) return '#FFF19B';
+      if (percentage >= 20) return '#FFC76F';
+      return '#EF9696';
+    }
+
+    final svg = StringBuffer('''
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="540" viewBox="0 0 760 540">
+<rect width="760" height="540" rx="20" fill="#07152D"/>
+<text x="380" y="34" text-anchor="middle" fill="#DCE6F4" font-family="Arial" font-size="15" font-weight="700">DESTINO NO GOL</text>
+''');
+
+    const gridX = 150;
+    const gridY = 68;
+    const cellW = 153;
+    const cellH = 58;
+    for (var i = 0; i < 12; i++) {
+      final x = 130 + i * 42;
+      final color = i.isEven ? '#F6F7F9' : '#FF594F';
+      svg.write('<rect x="$x" y="54" width="42" height="15" fill="$color"/>');
+    }
+    for (var row = 0; row < 3; row++) {
+      for (var col = 0; col < 3; col++) {
+        final zone = goalOrder[row * 3 + col];
+        final stats = goalStats[zone]!;
+        final count = stats['shots']!;
+        final percent = count == 0
+            ? '-'
+            : '${(stats['goals']! / count * 100).toStringAsFixed(0)}%';
+        final x = gridX + col * cellW;
+        final y = gridY + row * cellH;
+        svg.write('''
+<rect x="$x" y="$y" width="$cellW" height="$cellH" fill="${goalColor(zone)}" stroke="#FFFFFF" stroke-width="2"/>
+<text x="${x + cellW / 2}" y="${y + 19}" text-anchor="middle" fill="#51617A" font-family="Arial" font-size="15" font-weight="700">G${zone.toString().padLeft(2, '0')}</text>
+<text x="${x + cellW / 2}" y="${y + 36}" text-anchor="middle" fill="#51617A" font-family="Arial" font-size="12" font-weight="700">$percent</text>
+<text x="${x + cellW / 2}" y="${y + 50}" text-anchor="middle" fill="#51617A" font-family="Arial" font-size="9">Gol: ${stats['goals']}   Ch: $count</text>
+''');
+      }
+    }
+    svg.write('''
+<rect x="148" y="68" width="4" height="174" fill="#FF594F"/>
+<rect x="607" y="68" width="4" height="174" fill="#FF594F"/>
+<path d="M35 246 H725" stroke="#E7EDF7" stroke-width="4" stroke-linecap="round"/>
+<path d="M166 246 C185 345 575 345 594 246 Z" fill="#1956B6" stroke="#E7EDF7" stroke-width="4"/>
+<path d="M45 258 Q380 448 715 258" fill="none" stroke="#CCD6E5" stroke-width="3" stroke-dasharray="19 15"/>
+<path d="M166 247 L34 485 M594 247 L726 485 M270 324 L205 488 M490 324 L555 488" fill="none" stroke="#E7EDF7" stroke-width="4" stroke-linecap="round"/>
+<text x="380" y="522" text-anchor="middle" fill="#DCE6F4" font-family="Arial" font-size="15" font-weight="700">ORIGEM DO ARREMESSO</text>
+''');
+
+    for (final entry in shotAnchors.entries) {
+      final zone = entry.key;
+      final anchor = entry.value;
+      final label = zone == 11 ? '7M' : 'Z${zone.toString().padLeft(2, '0')}';
+      final count = shotZoneCounts[zone] ?? 0;
+      svg.write('''
+<rect x="${anchor.$1 - 39}" y="${anchor.$2 - 17}" width="78" height="34" rx="17" fill="#F7F9FC" stroke="#D7E0EC" stroke-width="1"/>
+<text x="${anchor.$1}" y="${anchor.$2 + 5}" text-anchor="middle" fill="#10233F" font-family="Arial" font-size="13" font-weight="700">$label  $count</text>
+''');
+    }
+    svg.write('</svg>');
+    return svg.toString();
   }
 
   List<List<String>> _playerShotRows(
