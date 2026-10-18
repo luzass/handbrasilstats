@@ -19,6 +19,7 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
   final _repository = WaTeamReportRepository();
   bool _isLoading = true;
   bool _isLoadingCompetition = false;
+  bool _isGeneratingPdf = false;
   String? _errorMessage;
   String _genderFilter = 'feminino';
   List<Map<String, dynamic>> _competitions = [];
@@ -92,19 +93,39 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
   Future<void> _createPdf(Map<String, dynamic> team) async {
     final data = _reportData;
     final competition = _selectedCompetition;
-    if (data == null || competition == null) return;
+    if (data == null || competition == null || _isGeneratingPdf) return;
 
-    final teamId = team['id'] as String;
-    final name = _displayTeamName(team);
-    final pdf = _buildPdf(reportData: data, teamId: teamId, teamName: name);
-    final bytes = await pdf.save();
-    final safeName = name
-        .toLowerCase()
-        .replaceAll(RegExp('[^a-z0-9]+'), '_')
-        .replaceAll(RegExp(r'^_|_$'), '');
-    final filename = 'copa_wa_${_genderFilter}_$safeName.pdf';
+    setState(() => _isGeneratingPdf = true);
+    try {
+      final teamId = team['id'] as String;
+      final name = _displayTeamName(team);
+      final pdf = _buildPdf(reportData: data, teamId: teamId, teamName: name);
+      final bytes = await pdf.save();
+      final safeName = name
+          .toLowerCase()
+          .replaceAll(RegExp('[^a-z0-9]+'), '_')
+          .replaceAll(RegExp(r'^_|_$'), '');
+      final filename = 'copa_wa_${_genderFilter}_$safeName.pdf';
+      final started = await Printing.sharePdf(bytes: bytes, filename: filename);
 
-    await Printing.layoutPdf(name: filename, onLayout: (_) async => bytes);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            started
+                ? 'PDF pronto para baixar ou compartilhar.'
+                : 'Não foi possível iniciar o download do PDF.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao gerar o PDF: $error')));
+    } finally {
+      if (mounted) setState(() => _isGeneratingPdf = false);
+    }
   }
 
   pw.Document _buildPdf({
@@ -794,9 +815,23 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
                                   'Relatório completo da equipe',
                                 ),
                                 trailing: FilledButton.icon(
-                                  onPressed: () => _createPdf(team),
-                                  icon: const Icon(Icons.download_outlined),
-                                  label: const Text('Baixar PDF'),
+                                  onPressed: _isGeneratingPdf
+                                      ? null
+                                      : () => _createPdf(team),
+                                  icon: _isGeneratingPdf
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.download_outlined),
+                                  label: Text(
+                                    _isGeneratingPdf
+                                        ? 'Preparando...'
+                                        : 'Baixar PDF',
+                                  ),
                                 ),
                               ),
                             );
