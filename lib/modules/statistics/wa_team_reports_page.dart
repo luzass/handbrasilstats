@@ -148,6 +148,8 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
     final players = _athletesFor(reportData, 'players', teamId);
     final goalkeepers = _athletesFor(reportData, 'goalkeepers', teamId);
     final shots = _shotsFor(reportData, teamId);
+    final totalGoals = _teamGoalTotal(teamStats, players, shots);
+    final totalShots = _num(teamStats['shots']);
     final pdf = pw.Document();
     final headerStyle = pw.TextStyle(
       fontSize: 9,
@@ -217,13 +219,32 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
     for (final player in players) {
       final playerId = player['player_id'] as String?;
       if (playerId == null) continue;
-      final playerRows = _playerShotRows(playerId, shots);
-      if (playerRows.isEmpty) continue;
+      final playerShots = shots
+          .where((shot) => shot['player_id'] == playerId)
+          .toList();
+      if (playerShots.isEmpty) continue;
+      final playerRows = _playerShotRows(playerId, playerShots);
+      final playerGoals = playerShots.where(
+        (shot) =>
+            (shot['shot_result'] as String? ?? '').toLowerCase() == 'goal',
+      );
       shotSections.add(pw.SizedBox(height: 10));
       shotSections.add(
         pw.Text(
-          player['player_name'] as String? ?? 'Atleta',
+          '${player['player_name'] as String? ?? 'Atleta'}  |  '
+          '${playerGoals.length} gols em ${playerShots.length} arremessos',
           style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+        ),
+      );
+      shotSections.add(pw.SizedBox(height: 4));
+      shotSections.add(
+        pw.Container(
+          width: double.infinity,
+          height: 265,
+          child: pw.SvgImage(
+            svg: _teamCourtMapSvg(playerShots),
+            fit: pw.BoxFit.contain,
+          ),
         ),
       );
       shotSections.add(pw.SizedBox(height: 4));
@@ -242,12 +263,9 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
     }
 
     String val(String key) => _number(teamStats[key]);
-    String pct(String goalsKey, String shotsKey) {
-      final goals = _num(teamStats[goalsKey]);
-      final attempts = _num(teamStats[shotsKey]);
-      if (attempts == 0) return '0,0%';
-      return '${(goals / attempts * 100).toStringAsFixed(1).replaceAll('.', ',')}%';
-    }
+    final teamShotPercentage = totalShots == 0
+        ? '0,0%'
+        : '${(totalGoals / totalShots * 100).toStringAsFixed(1).replaceAll('.', ',')}%';
 
     pdf.addPage(
       pw.MultiPage(
@@ -297,12 +315,8 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
             children: [
               metricCard('PARTIDAS', '${matches.length}', 0xFF0F766E),
               metricCard('CHUTES', val('shots'), 0xFF2878C8),
-              metricCard('GOLS', val('goals_scored'), 0xFF37A66B),
-              metricCard(
-                'APROVEITAMENTO',
-                pct('goals_scored', 'shots'),
-                0xFFE6AD2D,
-              ),
+              metricCard('GOLS', _number(totalGoals), 0xFF37A66B),
+              metricCard('APROVEITAMENTO', teamShotPercentage, 0xFFE6AD2D),
             ],
           ),
           pw.SizedBox(height: 14),
@@ -584,6 +598,32 @@ class _WaTeamReportsPageState extends State<WaTeamReportsPage> {
         '${counts['blocked']}',
       ];
     }).toList();
+  }
+
+  num _teamGoalTotal(
+    Map<String, dynamic> teamStats,
+    List<Map<String, dynamic>> players,
+    List<Map<String, dynamic>> shots,
+  ) {
+    final goalsFromStats = _num(
+      teamStats['goals_scored'] ?? teamStats['goals'],
+    );
+    final goalsFromPlayers = players.fold<num>(
+      0,
+      (total, player) => total + _num(player['goals']),
+    );
+    final goalsFromEvents = shots
+        .where(
+          (shot) =>
+              (shot['shot_result'] as String? ?? '').toLowerCase() == 'goal',
+        )
+        .length;
+
+    return [
+      goalsFromStats,
+      goalsFromPlayers,
+      goalsFromEvents,
+    ].reduce((highest, value) => value > highest ? value : highest);
   }
 
   Map<String, dynamic> _statsFor(

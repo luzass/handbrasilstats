@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_backdrop.dart';
 import '../admin/admin_home_page.dart';
 import '../client/client_home_page.dart';
+import '../player/player_home_page.dart';
 import '../scout/scout_home_page.dart';
 import '../viewer/viewer_home_page.dart';
 import 'forgot_password_page.dart';
@@ -73,7 +74,9 @@ class _LoginPageState extends State<LoginPage> {
           break;
         case 'viewer':
         default:
-          nextPage = const ViewerHomePage();
+          nextPage = profile.profileType == 'player'
+              ? const PlayerHomePage()
+              : const ViewerHomePage();
           break;
       }
 

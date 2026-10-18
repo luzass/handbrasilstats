@@ -8,6 +8,7 @@ import '../admin/admin_home_page.dart';
 import '../client/client_home_page.dart';
 import '../home/profile_type_selection_page.dart';
 import '../auth/reset_password_page.dart';
+import '../player/player_home_page.dart';
 import '../scout/scout_home_page.dart';
 import '../viewer/viewer_home_page.dart';
 
@@ -69,7 +70,11 @@ class _SplashPageState extends State<SplashPage> {
           break;
         case 'viewer':
         default:
-          _goTo(const ViewerHomePage());
+          _goTo(
+            profile.profileType == 'player'
+                ? const PlayerHomePage()
+                : const ViewerHomePage(),
+          );
           break;
       }
     } catch (_) {

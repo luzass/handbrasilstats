@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../theme/app_theme.dart';
+import '../../utils/cpf_utils.dart';
 import '../../widgets/app_backdrop.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -18,6 +20,7 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _fullNameController = TextEditingController();
+  final _cpfController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -29,7 +32,18 @@ class _RegisterPageState extends State<RegisterPage> {
 
   String? _errorMessage;
 
-  String get _effectiveProfileType => 'visitor';
+  String get _effectiveProfileType {
+    switch (widget.profileType) {
+      case 'player':
+      case 'team':
+      case 'visitor':
+        return widget.profileType;
+      default:
+        return 'visitor';
+    }
+  }
+
+  bool get _isPlayerProfile => _effectiveProfileType == 'player';
 
   String get _profileLabel {
     switch (_effectiveProfileType) {
@@ -105,6 +119,7 @@ class _RegisterPageState extends State<RegisterPage> {
     FocusScope.of(context).unfocus();
 
     final fullName = _fullNameController.text.trim();
+    final cpf = _cpfController.text.trim();
     final phone = _phoneController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -117,6 +132,13 @@ class _RegisterPageState extends State<RegisterPage> {
         confirmPassword.isEmpty) {
       setState(() {
         _errorMessage = 'Preencha todos os campos.';
+      });
+      return;
+    }
+
+    if (_isPlayerProfile && !CpfUtils.isValidLength(cpf)) {
+      setState(() {
+        _errorMessage = 'Informe um CPF com 11 dígitos para vincular suas estatísticas.';
       });
       return;
     }
@@ -158,6 +180,8 @@ class _RegisterPageState extends State<RegisterPage> {
           'phone': phone,
           'profile_type': _effectiveProfileType,
           'role': 'viewer',
+          if (_isPlayerProfile) 'cpf_hash': CpfUtils.hash(cpf),
+          if (_isPlayerProfile) 'cpf_last4': CpfUtils.last4(cpf),
         },
       );
       final needsEmailConfirmation = response.session == null;
@@ -168,6 +192,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
 
       _fullNameController.clear();
+      _cpfController.clear();
       _phoneController.clear();
       _emailController.clear();
       _passwordController.clear();
@@ -196,6 +221,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   void dispose() {
     _fullNameController.dispose();
+    _cpfController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -276,6 +302,31 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                       const SizedBox(height: 14),
+                      if (_isPlayerProfile) ...[
+                        TextField(
+                          controller: _cpfController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(11),
+                          ],
+                          decoration: _inputDecoration(
+                            label: 'CPF do atleta',
+                            prefixIcon:
+                                const Icon(Icons.fingerprint_outlined),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Usamos o CPF apenas para vincular sua conta ao atleta cadastrado. O app envia e salva a chave protegida, não exibe o CPF completo.',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12.5,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
                       TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,

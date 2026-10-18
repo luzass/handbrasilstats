@@ -9,6 +9,7 @@ import '../../models/player_model.dart';
 import '../../models/team_model.dart';
 import '../../repositories/player_repository.dart';
 import '../../repositories/team_roster_repository.dart';
+import '../../utils/cpf_utils.dart';
 import '../../utils/csv_utils.dart';
 import '../../utils/player_csv_import_parser.dart';
 import '../../widgets/app_backdrop.dart';
@@ -114,6 +115,12 @@ class _TeamRosterPageState extends State<TeamRosterPage> {
         });
       }
     }
+  }
+
+  String _maskedCpf(String? value) {
+    if (value == null || value.trim().isEmpty) return '-';
+    final last4 = CpfUtils.last4(value);
+    return CpfUtils.maskFromLast4(last4);
   }
 
   Future<void> _pickAndImportCsv() async {
@@ -230,7 +237,7 @@ class _TeamRosterPageState extends State<TeamRosterPage> {
                         contentPadding: EdgeInsets.zero,
                         title: Text(item.fullName),
                         subtitle: Text(
-                          'Posicao: ${item.primaryPosition ?? 'nao_informado'} | CPF: ${item.cpf ?? '-'}',
+                          'Posicao: ${item.primaryPosition ?? 'nao_informado'} | CPF: ${_maskedCpf(item.cpf)}',
                         ),
                       );
                     },
@@ -361,7 +368,7 @@ class _TeamRosterPageState extends State<TeamRosterPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${player.primaryPosition} | CPF: ${player.cpf ?? '-'} | ${player.birthCity ?? '-'}',
+                  '${player.primaryPosition} | CPF: ${_maskedCpf(player.cpf)} | ${player.birthCity ?? '-'}',
                   style: TextStyle(
                     color: Colors.grey.shade700,
                   ),

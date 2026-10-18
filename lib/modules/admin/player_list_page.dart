@@ -7,6 +7,7 @@ import '../../models/player_csv_import_result.dart';
 import '../../models/player_csv_import_row.dart';
 import '../../models/player_model.dart';
 import '../../repositories/player_repository.dart';
+import '../../utils/cpf_utils.dart';
 import '../../utils/csv_utils.dart';
 import '../../utils/player_csv_import_parser.dart';
 import 'player_form_page.dart';
@@ -67,6 +68,12 @@ class _PlayerListPageState extends State<PlayerListPage> {
     );
 
     await _loadPlayers();
+  }
+
+  String _maskedCpf(String? value) {
+    if (value == null || value.trim().isEmpty) return '-';
+    final last4 = CpfUtils.last4(value);
+    return CpfUtils.maskFromLast4(last4);
   }
 
   Future<void> _pickAndImportCsv() async {
@@ -176,7 +183,7 @@ class _PlayerListPageState extends State<PlayerListPage> {
                         contentPadding: EdgeInsets.zero,
                         title: Text(item.fullName),
                         subtitle: Text(
-                          'Posicao: ${item.primaryPosition ?? 'nao_informado'} | CPF: ${item.cpf ?? '-'}',
+                          'Posicao: ${item.primaryPosition ?? 'nao_informado'} | CPF: ${_maskedCpf(item.cpf)}',
                         ),
                       );
                     },
@@ -337,7 +344,7 @@ class _PlayerListPageState extends State<PlayerListPage> {
                           leading: _buildPlayerAvatar(item),
                           title: Text(item.fullName),
                           subtitle: Text(
-                            '${item.primaryPosition} | ${item.birthCity ?? '-'} | CPF: ${item.cpf ?? '-'}',
+                            '${item.primaryPosition} | ${item.birthCity ?? '-'} | CPF: ${_maskedCpf(item.cpf)}',
                           ),
                           trailing: IconButton(
                             icon: const Icon(Icons.edit),
